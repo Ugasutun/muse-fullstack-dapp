@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChevronRight, ChevronLeft, Upload, FileText, Wallet, Check, Sparkles } from 'lucide-react'
 import { ErrorHandler, AppError } from '@/utils/errorHandler'
 import { ErrorDisplay } from '@/components/ErrorDisplay'
+import { TransactionStatus, TransactionStatusType } from '@/components/TransactionStatus'
 
 interface Metadata {
   title: string
@@ -26,7 +27,7 @@ export function MintStepper({ onComplete }: StepperProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const [error, setError] = useState<AppError | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  
+
   // Metadata state
   const [metadata, setMetadata] = useState<Metadata>({
     title: '',
@@ -36,17 +37,18 @@ export function MintStepper({ onComplete }: StepperProps) {
     price: '',
     royalty: '10'
   })
-  
+
   // File state
   const [fileData, setFileData] = useState<FileData>({
     file: null,
     preview: null,
     type: ''
   })
-  
+
   // Blockchain state
   const [walletConnected, setWalletConnected] = useState(false)
   const [transactionHash, setTransactionHash] = useState<string | null>(null)
+  const [transactionStatus, setTransactionStatus] = useState<TransactionStatusType>('idle')
 
   const steps = [
     { id: 1, title: 'Metadata', icon: FileText, description: 'Add artwork details' },
@@ -55,10 +57,10 @@ export function MintStepper({ onComplete }: StepperProps) {
   ]
 
   const validateMetadata = (): boolean => {
-    return !!(metadata.title.trim() && 
-             metadata.description.trim() && 
-             metadata.category && 
-             metadata.price.trim())
+    return !!(metadata.title.trim() &&
+      metadata.description.trim() &&
+      metadata.category &&
+      metadata.price.trim())
   }
 
   const validateFile = (): boolean => {
@@ -115,7 +117,7 @@ export function MintStepper({ onComplete }: StepperProps) {
       }))
       return
     }
-    
+
     if (currentStep === 2 && !validateFile()) {
       setError(ErrorHandler.handle({
         code: 'VALIDATION_ERROR',
@@ -167,18 +169,21 @@ export function MintStepper({ onComplete }: StepperProps) {
     }
 
     setIsProcessing(true)
+    setTransactionStatus('pending')
+
     try {
-      // Blockchain signing logic would go here
-      // For now, simulate signing
+      // Simulate transaction processing
       await new Promise(resolve => setTimeout(resolve, 3000))
-      
+
       // Generate mock transaction hash
-      const mockHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('')
+      const mockHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')
       setTransactionHash(mockHash)
-      
+      setTransactionStatus('confirmed')
+
       // Call completion callback
       onComplete?.({ metadata, fileData })
     } catch (error) {
+      setTransactionStatus('failed')
       const appError = ErrorHandler.handle(error)
       setError(appError)
     } finally {
@@ -198,7 +203,7 @@ export function MintStepper({ onComplete }: StepperProps) {
               <input
                 type="text"
                 value={metadata.title}
-                onChange={(e) => setMetadata({...metadata, title: e.target.value})}
+                onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
                 placeholder="Enter artwork title"
                 className="input w-full"
               />
@@ -210,7 +215,7 @@ export function MintStepper({ onComplete }: StepperProps) {
               </label>
               <textarea
                 value={metadata.description}
-                onChange={(e) => setMetadata({...metadata, description: e.target.value})}
+                onChange={(e) => setMetadata({ ...metadata, description: e.target.value })}
                 placeholder="Describe your artwork..."
                 className="input w-full h-32 resize-none"
               />
@@ -223,7 +228,7 @@ export function MintStepper({ onComplete }: StepperProps) {
                 </label>
                 <select
                   value={metadata.category}
-                  onChange={(e) => setMetadata({...metadata, category: e.target.value})}
+                  onChange={(e) => setMetadata({ ...metadata, category: e.target.value })}
                   className="input w-full"
                 >
                   <option value="">Select category</option>
@@ -243,7 +248,7 @@ export function MintStepper({ onComplete }: StepperProps) {
                 <input
                   type="number"
                   value={metadata.price}
-                  onChange={(e) => setMetadata({...metadata, price: e.target.value})}
+                  onChange={(e) => setMetadata({ ...metadata, price: e.target.value })}
                   placeholder="0.0"
                   step="0.01"
                   min="0"
@@ -259,7 +264,7 @@ export function MintStepper({ onComplete }: StepperProps) {
               <input
                 type="text"
                 value={metadata.tags.join(', ')}
-                onChange={(e) => setMetadata({...metadata, tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean)})}
+                onChange={(e) => setMetadata({ ...metadata, tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean) })}
                 placeholder="art, digital, creative (comma separated)"
                 className="input w-full"
               />
@@ -272,7 +277,7 @@ export function MintStepper({ onComplete }: StepperProps) {
               <input
                 type="number"
                 value={metadata.royalty}
-                onChange={(e) => setMetadata({...metadata, royalty: e.target.value})}
+                onChange={(e) => setMetadata({ ...metadata, royalty: e.target.value })}
                 min="0"
                 max="50"
                 className="input w-full"
@@ -300,9 +305,9 @@ export function MintStepper({ onComplete }: StepperProps) {
                   {fileData.preview ? (
                     <div className="space-y-4">
                       {fileData.type.startsWith('image/') ? (
-                        <img 
-                          src={fileData.preview} 
-                          alt="Preview" 
+                        <img
+                          src={fileData.preview}
+                          alt="Preview"
                           className="max-h-64 mx-auto rounded-lg"
                         />
                       ) : (
@@ -357,7 +362,7 @@ export function MintStepper({ onComplete }: StepperProps) {
           <div className="space-y-6">
             <div className="card p-6">
               <h3 className="font-semibold text-secondary-900 mb-4">Transaction Summary</h3>
-              
+
               <div className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-secondary-600">Artwork</span>
@@ -413,36 +418,31 @@ export function MintStepper({ onComplete }: StepperProps) {
                   <span>Wallet connected</span>
                 </div>
 
-                {!transactionHash ? (
+                <TransactionStatus
+                  status={transactionStatus}
+                  hash={transactionHash}
+                  error={error?.userMessage}
+                />
+
+                {transactionStatus === 'idle' && (
                   <button
                     onClick={handleSignTransaction}
                     disabled={isProcessing}
                     className="btn-primary w-full py-3 flex items-center justify-center space-x-2"
                   >
-                    {isProcessing ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                        <span>Signing Transaction...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4" />
-                        <span>Sign & Mint NFT</span>
-                      </>
-                    )}
+                    <Sparkles className="h-4 w-4" />
+                    <span>Sign & Mint NFT</span>
                   </button>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2 text-green-600">
-                      <Check className="h-5 w-5" />
-                      <span>Transaction successful!</span>
-                    </div>
-                    <div className="card p-4 bg-green-50 border-green-200">
-                      <p className="text-sm text-green-800">
-                        Transaction Hash: {transactionHash}
-                      </p>
-                    </div>
-                  </div>
+                )}
+
+                {isProcessing && transactionStatus === 'idle' && (
+                  <button
+                    disabled
+                    className="btn-primary w-full py-3 flex items-center justify-center space-x-2 opacity-50"
+                  >
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    <span>Processing...</span>
+                  </button>
                 )}
               </div>
             )}
@@ -466,8 +466,8 @@ export function MintStepper({ onComplete }: StepperProps) {
               <div className="flex items-center">
                 <div className={`
                   w-10 h-10 rounded-full flex items-center justify-center
-                  ${currentStep >= step.id 
-                    ? 'bg-primary-600 text-white' 
+                  ${currentStep >= step.id
+                    ? 'bg-primary-600 text-white'
                     : 'bg-secondary-200 text-secondary-600'
                   }
                 `}>
@@ -478,18 +478,16 @@ export function MintStepper({ onComplete }: StepperProps) {
                   )}
                 </div>
                 <div className="ml-3">
-                  <p className={`text-sm font-medium ${
-                    currentStep >= step.id ? 'text-primary-600' : 'text-secondary-600'
-                  }`}>
+                  <p className={`text-sm font-medium ${currentStep >= step.id ? 'text-primary-600' : 'text-secondary-600'
+                    }`}>
                     {step.title}
                   </p>
                   <p className="text-xs text-secondary-500">{step.description}</p>
                 </div>
               </div>
               {index < steps.length - 1 && (
-                <div className={`flex-1 h-0.5 mx-4 ${
-                  currentStep > step.id ? 'bg-primary-600' : 'bg-secondary-200'
-                }`} />
+                <div className={`flex-1 h-0.5 mx-4 ${currentStep > step.id ? 'bg-primary-600' : 'bg-secondary-200'
+                  }`} />
               )}
             </div>
           ))}
