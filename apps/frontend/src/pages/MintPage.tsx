@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Sparkles, Image as ImageIcon } from 'lucide-react'
 import { ErrorHandler, AppError } from '@/utils/errorHandler'
 import { ErrorDisplay } from '@/components/ErrorDisplay'
+import { OptimizedImage } from '@/components/ui/OptimizedImage'
 
 export function MintPage() {
   const [prompt, setPrompt] = useState('')
@@ -18,7 +19,7 @@ export function MintPage() {
       // AI image generation logic will be implemented
       console.log('Generating image for prompt:', prompt)
       setTimeout(() => {
-        setGeneratedImage('placeholder-image-url')
+        setGeneratedImage(`https://picsum.photos/512/512?random=${Date.now()}`)
         setIsGenerating(false)
       }, 3000)
     } catch (error) {
@@ -88,8 +89,15 @@ export function MintPage() {
           {generatedImage && (
             <div className="space-y-4">
               <h3 className="font-semibold text-secondary-900">Generated Artwork</h3>
-              <div className="aspect-square bg-gradient-to-br from-primary-100 to-primary-200 rounded-lg flex items-center justify-center">
-                <ImageIcon className="h-16 w-16 text-primary-400" />
+              <div className="aspect-square bg-gradient-to-br from-primary-100 to-primary-200 rounded-lg overflow-hidden">
+                <OptimizedImage
+                  src={generatedImage}
+                  alt="Generated AI artwork"
+                  className="w-full h-full object-cover"
+                  width={512}
+                  height={512}
+                  placeholder="blur"
+                />
               </div>
               
               <button

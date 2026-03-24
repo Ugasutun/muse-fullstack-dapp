@@ -7,7 +7,7 @@ const mockArtworks = Array.from({ length: 6 }, (_, i) => ({
   id: `mock-${i + 1}`,
   title: `AI Artwork #${i + 1}`,
   description: 'Generated with AI Model',
-  imageUrl: '',
+  imageUrl: `https://picsum.photos/600/600?random=${i + 1}`,
   price: '0.1',
   currency: 'ETH',
   creator: `Artist ${i + 1}`
