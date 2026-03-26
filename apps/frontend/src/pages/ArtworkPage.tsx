@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { useArtworkMetadata } from '@/hooks/useMetadata'
-import { MetaTags } from '@/components/MetaTags'
+import { MetaTags, buildArtworkSchema } from '@/components/MetaTags'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { useTranslation } from 'react-i18next'
 
@@ -39,12 +39,18 @@ export function ArtworkPage() {
         title={artworkData.title}
         description={artworkData.description}
         image={artworkData.image}
-        url={artworkData.url}
-        type={artworkData.type}
-        siteName={artworkData.siteName}
-        twitterCard={artworkData.twitterCard}
-        twitterSite={artworkData.twitterSite}
-        additionalTags={artworkData.additionalTags}
+        canonicalUrl={`https://muse.art/artwork/${id}`}
+        type="article"
+        twitterCard="summary_large_image"
+        structuredData={buildArtworkSchema({
+          id: id || '',
+          title: artworkData.title,
+          description: artworkData.description,
+          image: artworkData.image,
+          creator: artworkData.additionalTags?.creator,
+          price: artworkData.additionalTags?.price,
+          currency: artworkData.additionalTags?.currency || 'XLM',
+        })}
       />
       
       <div className="min-h-screen bg-background">

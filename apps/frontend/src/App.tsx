@@ -4,6 +4,43 @@ import { Navigation } from './components/composite/Navigation';
 import { ArtworkPage } from './pages/ArtworkPage';
 import SearchTest from './pages/SearchTest';
 import { useTranslation } from 'react-i18next';
+import { MetaTags } from './components/MetaTags';
+
+// ── Stub pages with proper SEO (noIndex until pages are complete) ─────────────
+
+function ProfileStub() {
+  return (
+    <>
+      <MetaTags
+        title="My Profile"
+        description="View and manage your Muse profile, collected artworks, and created NFTs."
+        canonicalUrl="https://muse.art/profile"
+        noIndex={true}
+      />
+      <div className="flex items-center justify-center p-20 text-secondary-500">
+        Profile Page (Coming Soon)
+      </div>
+    </>
+  );
+}
+
+function MintStub() {
+  return (
+    <>
+      <MetaTags
+        title="Mint NFT"
+        description="Mint your AI-generated artwork as an NFT on the Stellar blockchain via Muse."
+        canonicalUrl="https://muse.art/mint"
+        noIndex={true}
+      />
+      <div className="flex items-center justify-center p-20 text-secondary-500">
+        Mint Page (Coming Soon)
+      </div>
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function App() {
   const { i18n } = useTranslation();
@@ -17,16 +54,8 @@ function App() {
           <Route path="/" element={<SearchTest />} />
           <Route path="/explore" element={<SearchTest />} />
           <Route path="/artwork/:id" element={<ArtworkPage />} />
-          <Route path="/profile" element={
-            <div className="flex items-center justify-center p-20 text-secondary-500">
-              Profile Page (Coming Soon)
-            </div>
-          } />
-          <Route path="/mint" element={
-            <div className="flex items-center justify-center p-20 text-secondary-500">
-              Mint Page (Coming Soon)
-            </div>
-          } />
+          <Route path="/profile" element={<ProfileStub />} />
+          <Route path="/mint" element={<MintStub />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
