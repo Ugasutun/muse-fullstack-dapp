@@ -3,9 +3,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import compression from 'compression'
-import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
-
 import { errorHandler } from '@/middleware/errorHandler'
 import { notFound } from '@/middleware/notFound'
 import cacheService from '@/services/cacheService'
@@ -15,8 +13,10 @@ import userRoutes from '@/routes/user'
 import aiRoutes from '@/routes/ai'
 import metadataRoutes from '@/routes/metadata'
 import cacheRoutes from '@/routes/cache'
-import imageOptimizerRoutes from '@/routes/imageOptimizer'
 import authRoutes from '@/routes/auth'
+import imageOptimizerRoutes from '@/routes/imageOptimizer'
+import { authenticate, optionalAuthenticate } from '@/middleware/authMiddleware'
+import { standardLimiter } from '@/middleware/rateLimitMiddleware'
 
 import swaggerJsdoc from 'swagger-jsdoc'
 import swaggerUi from 'swagger-ui-express'
@@ -70,12 +70,6 @@ mongoose.connect(MONGODB_URI)
   .then(() => logger.info('✅ Successfully connected to MongoDB'))
   .catch((err) => logger.error('❌ Error connecting to MongoDB:', err))
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Too many requests from this IP, please try again later.',
-})
-
 app.use(helmet())
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -83,7 +77,8 @@ app.use(cors({
 }))
 app.use(compression())
 app.use(morgan('combined'))
-app.use(limiter)
+app.use(optionalAuthenticate)
+app.use(standardLimiter)
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
 

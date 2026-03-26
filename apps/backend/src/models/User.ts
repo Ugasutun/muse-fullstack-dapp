@@ -5,6 +5,7 @@ export interface IUser extends Document {
   username?: string
   bio?: string
   profileImage?: string
+  tier: 'free' | 'pro' | 'premium'
   stats: {
     created: number
     collected: number
@@ -17,6 +18,11 @@ const UserSchema: Schema = new Schema({
   username: { type: String, default: 'Anonymous Artist' },
   bio: { type: String, default: '' },
   profileImage: { type: String, default: '' },
+  tier: { 
+    type: String, 
+    enum: ['free', 'pro', 'premium'], 
+    default: 'free' 
+  },
   stats: {
     created: { type: Number, default: 0 },
     collected: { type: Number, default: 0 },

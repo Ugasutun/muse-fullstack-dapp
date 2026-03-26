@@ -3,6 +3,8 @@ import { login, getChallenge } from '@/controllers/authController'
 import { validate } from '@/middleware/validate'
 import { loginSchema } from '@/schemas/authSchemas'
 
+import { authLimiter } from '@/middleware/rateLimitMiddleware'
+
 const router = Router()
 
 /**
@@ -16,7 +18,7 @@ const router = Router()
  *       200:
  *         description: Challenge nonce returned successfully
  */
-router.get('/challenge', getChallenge)
+router.get('/challenge', authLimiter, getChallenge)
 
 /**
  * @openapi
@@ -42,6 +44,6 @@ router.get('/challenge', getChallenge)
  *       401:
  *         description: Invalid signature or public key
  */
-router.post('/login', validate(loginSchema), login)
+router.post('/login', authLimiter, validate(loginSchema), login)
 
 export default router
