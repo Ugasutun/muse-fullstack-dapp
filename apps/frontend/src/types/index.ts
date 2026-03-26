@@ -344,6 +344,90 @@ export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P]
 }
 
+// User Settings Types
+export interface UserSettings {
+  profile: UserSettingsProfile
+  notifications: UserSettingsNotifications
+  privacy: UserSettingsPrivacy
+  preferences: UserSettingsPreferences
+  wallet: UserSettingsWallet
+}
+
+export interface UserSettingsProfile {
+  username: string
+  email?: string
+  bio?: string
+  website?: string
+  twitter?: string
+  discord?: string
+  avatar?: string
+  banner?: string
+}
+
+export interface UserSettingsNotifications {
+  email: {
+    newSales: boolean
+    newOffers: boolean
+    priceAlerts: boolean
+    newsletter: boolean
+    security: boolean
+  }
+  push: {
+    newSales: boolean
+    newOffers: boolean
+    priceAlerts: boolean
+    mentions: boolean
+    follows: boolean
+  }
+}
+
+export interface UserSettingsPrivacy {
+  profileVisibility: 'public' | 'private' | 'friends'
+  showEmail: boolean
+  showSocialLinks: boolean
+  allowDirectMessages: boolean
+  showOnlineStatus: boolean
+  showActivity: boolean
+}
+
+export interface UserSettingsPreferences {
+  language: string
+  currency: string
+  theme: 'light' | 'dark' | 'system'
+  timezone: string
+  autoPlayVideos: boolean
+  highQualityImages: boolean
+  matureContent: boolean
+}
+
+export interface UserSettingsWallet {
+  connectedWallets: ConnectedWallet[]
+  defaultWallet?: string
+  gasSettings: GasSettings
+  securitySettings: SecuritySettings
+}
+
+export interface ConnectedWallet {
+  address: string
+  name: string
+  network: 'testnet' | 'mainnet'
+  isDefault: boolean
+  connectedAt: string
+}
+
+export interface GasSettings {
+  speed: 'slow' | 'standard' | 'fast'
+  maxGasPrice?: string
+  autoAdjust: boolean
+}
+
+export interface SecuritySettings {
+  twoFactorEnabled: boolean
+  emailVerification: boolean
+  sessionTimeout: number
+  loginNotifications: boolean
+}
+
 // Theme Types
 export interface Theme {
   colors: {

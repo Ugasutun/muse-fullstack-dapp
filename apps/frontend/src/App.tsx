@@ -1,7 +1,7 @@
-import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Navigation } from './components/composite/Navigation';
 import { ArtworkPage } from './pages/ArtworkPage';
+import { UserSettingsPage } from './pages/UserSettingsPage';
 import SearchTest from './pages/SearchTest';
 import { useTranslation } from 'react-i18next';
 
@@ -17,11 +17,7 @@ function App() {
           <Route path="/" element={<SearchTest />} />
           <Route path="/explore" element={<SearchTest />} />
           <Route path="/artwork/:id" element={<ArtworkPage />} />
-          <Route path="/profile" element={
-            <div className="flex items-center justify-center p-20 text-secondary-500">
-              Profile Page (Coming Soon)
-            </div>
-          } />
+          <Route path="/profile" element={<UserSettingsPage />} />
           <Route path="/mint" element={
             <div className="flex items-center justify-center p-20 text-secondary-500">
               Mint Page (Coming Soon)
