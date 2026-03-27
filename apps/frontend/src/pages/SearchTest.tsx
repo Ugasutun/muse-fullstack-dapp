@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ArtworkCard } from "../components/artwork/ArtworkCard";
 import { useTranslation } from "react-i18next";
+import { MetaTags, buildWebSiteSchema } from "../components/MetaTags";
 
 const MOCK_DATA = [
   {
@@ -35,6 +36,12 @@ export default function SearchTest() {
 
   return (
     <div className="p-10 max-w-6xl mx-auto bg-white min-h-screen">
+      <MetaTags
+        title="Explore AI Art"
+        description="Browse and collect unique AI-generated artworks on Muse — the decentralized art marketplace powered by Stellar. Discover digital art, mint NFTs, and connect with creators."
+        canonicalUrl="https://muse.art/explore"
+        structuredData={buildWebSiteSchema()}
+      />
       <h1 className="text-2xl font-bold mb-6">{t('common.verification_page')}</h1>
       <div className="relative mb-8 max-w-md">
         <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">

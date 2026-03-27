@@ -4,6 +4,7 @@ import { Keypair } from 'stellar-sdk'
 import User from '@/models/User'
 import { createError } from '@/middleware/errorHandler'
 import { createLogger } from '@/utils/logger'
+import cacheService from '@/services/cacheService'
 
 const logger = createLogger('AuthController')
 const JWT_SECRET = process.env.JWT_SECRET || 'your_fallback_jwt_secret_donotuseinprod'
@@ -17,8 +18,13 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
   try {
     const { address, signature, payload } = req.body
 
-    if (!address || !signature || !payload) {
-      return next(createError('Missing address, signature, or payload', 400))
+    const storedChallenge = await cacheService.get(`auth_challenge:${address}`)
+    if (!storedChallenge) {
+      return next(createError('Challenge expired or not found. Please request a new challenge.', 401))
+    }
+
+    if (payload !== storedChallenge) {
+      return next(createError('Invalid payload: does not match authentication challenge', 401))
     }
 
     // Verify signature using Stellar SDK
@@ -28,6 +34,9 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     if (!isVerified) {
       return next(createError('Invalid signature provided', 401))
     }
+
+    // After successful verification, remove the challenge
+    await cacheService.del(`auth_challenge:${address}`)
 
     // Check if user exists or create a new one
     let user = await User.findOne({ address })
@@ -71,11 +80,22 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 /**
  * Placeholder for fetching a challenge/nonce for more secure login
  */
-export const getChallenge = (req: Request, res: Response) => {
-  // In a robust implementation, generate a random nonce and store in Redis with TTL
-  const nonce = `Muse Authentication Challenge: ${Math.random().toString(36).substring(7)}`
-  res.json({
-    success: true,
-    data: { challenge: nonce }
-  })
+export const getChallenge = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { address } = req.query as { address: string }
+    
+    // Generate a random nonce
+    const nonce = `Muse Authentication Challenge: ${Math.random().toString(36).substring(2, 15)} at ${Date.now()}`
+    
+    // Store in cache with 5 minute TTL (300 seconds)
+    await cacheService.set(`auth_challenge:${address}`, nonce, 300)
+
+    res.json({
+      success: true,
+      data: { challenge: nonce }
+    })
+  } catch (error) {
+    logger.error('Failed to generate challenge:', error)
+    next(createError('Failed to generate authentication challenge', 500))
+  }
 }

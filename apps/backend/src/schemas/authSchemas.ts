@@ -7,3 +7,9 @@ export const loginSchema = z.object({
     payload: z.string().min(1, 'Payload is required')
   })
 })
+
+export const challengeSchema = z.object({
+  query: z.object({
+    address: z.string().regex(/^G[A-Z0-9]{55}$/, 'Invalid Stellar address format')
+  })
+})
