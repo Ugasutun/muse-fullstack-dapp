@@ -6,7 +6,8 @@ import compression from 'compression'
 import morgan from 'morgan'
 
 import { requestContext } from '@/middleware/requestContext'
-import { errorHandler, notFoundHandler } from '@/middleware/errorHandler'
+import { errorHandler } from '@/middleware/errorHandler'
+import { notFoundHandler } from '@/middleware/notFound'
 import { createLogger } from '@/utils/logger'
 import databaseService from '@/services/databaseService'
 
@@ -16,6 +17,9 @@ import artworkRoutes from '@/routes/artwork'
 import userRoutes from '@/routes/user'
 import aiRoutes from '@/routes/ai'
 import metadataRoutes from '@/routes/metadata'
+import cacheRoutes from '@/routes/cache'
+import imageOptimizerRoutes from '@/routes/imageOptimizer'
+import favoriteRoutes from '@/routes/favorites'
 
 const logger = createLogger('App')
 const PORT = parseInt(process.env.PORT || '3001', 10)
@@ -56,6 +60,9 @@ app.use('/api/artworks', artworkRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/ai', aiRoutes)
 app.use('/api/metadata', metadataRoutes)
+app.use('/api/cache', cacheRoutes)
+app.use('/api/images', imageOptimizerRoutes)
+app.use('/api/favorites', favoriteRoutes)
 
 // ── 404 & Global Error Handlers ──────────────────────────────────────────────
 app.use(notFoundHandler)

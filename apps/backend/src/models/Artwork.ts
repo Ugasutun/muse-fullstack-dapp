@@ -14,10 +14,16 @@ export interface IArtwork extends Document {
   tokenId?: string
   isListed: boolean
   metadata?: {
-    attributes?: Record<string, unknown>
+    attributes?: Array<{
+      trait_type: string
+      value: string | number
+      display_type?: 'number' | 'date' | 'string'
+    }>
     category?: string
     aiModel?: string
     prompt?: string
+    externalUrl?: string
+    backgroundColor?: string
   }
   image?: string
   blockchainData?: {
@@ -44,10 +50,16 @@ const ArtworkSchema: Schema = new Schema(
     tokenId: { type: String, sparse: true },
     isListed: { type: Boolean, default: false, index: true },
     metadata: {
-      attributes: { type: Schema.Types.Mixed },
+      attributes: [{
+        trait_type: String,
+        value: Schema.Types.Mixed,
+        display_type: { type: String, enum: ['number', 'date', 'string'] },
+      }],
       category: { type: String },
       aiModel: { type: String },
       prompt: { type: String },
+      externalUrl: { type: String },
+      backgroundColor: { type: String },
     },
     image: { type: String },
     blockchainData: {
@@ -65,7 +77,10 @@ const ArtworkSchema: Schema = new Schema(
 
 ArtworkSchema.index({ title: 'text', description: 'text', prompt: 'text' })
 ArtworkSchema.index({ creator: 1, isListed: 1 })
-ArtworkSchema.index({ category: 1, isListed: 1 })
+ArtworkSchema.index({ category: 1, isListed: 1, createdAt: -1 })
+ArtworkSchema.index({ creator: 1, createdAt: -1 })
+ArtworkSchema.index({ price: 1 })
+ArtworkSchema.index({ createdAt: -1 })
 
 export const Artwork = mongoose.model<IArtwork>('Artwork', ArtworkSchema)
 export default Artwork

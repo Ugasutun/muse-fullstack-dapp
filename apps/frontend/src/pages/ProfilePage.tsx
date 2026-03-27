@@ -9,6 +9,8 @@ import { EmptyState } from '@/components/EmptyState'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { useUserProfile, useUserArtworks } from '@/services/artworkService'
 import { useStellar } from '@/hooks/useStellar'
+import { useFavorites } from '@/hooks/useFavorites'
+import { Artwork } from '@/types'
 
 type ActiveTab = 'created' | 'favorites'
 
@@ -20,11 +22,33 @@ export function ProfilePage() {
   const { data: artworks, isLoading: artworksLoading } = useUserArtworks(
     account.publicKey || profile?.address || ''
   )
+  const { favorites, isLoading: favoritesLoading, toggleFavorite } = useFavorites()
 
   // Display address: connected wallet key takes priority over API profile address
   const displayAddress = account.publicKey || profile?.address || '—'
   const displayName = profile?.username || 'Artist'
   const stats = profile?.stats ?? { created: 0, collected: 0, favorites: 0 }
+
+  const handleFavorite = async (artwork: Artwork) => {
+    try {
+      if (!account.isConnected || !account.publicKey) {
+        console.error('Wallet not connected')
+        return
+      }
+
+      // Check if currently in favorites by looking through the list
+      const isCurrentlyFavorite = favorites.some(fav => fav.id === artwork.id)
+      const newState = await toggleFavorite(artwork.id, isCurrentlyFavorite)
+      
+      if (newState) {
+        console.log(`${artwork.title} added to favorites`)
+      } else {
+        console.log(`${artwork.title} removed from favorites`)
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error)
+    }
+  }
 
   // Abbreviate long Stellar public key for display
   const shortAddress =
@@ -143,6 +167,7 @@ export function ProfilePage() {
                         variant="default"
                         showPrice
                         showCreator={false}
+                        onFavorite={handleFavorite}
                       />
                     ))}
                   </Grid>
@@ -153,7 +178,30 @@ export function ProfilePage() {
             )}
 
             {activeTab === 'favorites' && (
-              <EmptyState type="no-favorites" />
+              <>
+                {favoritesLoading ? (
+                  <Grid columns={3} gap="md" responsive={false}>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <ArtworkCardSkeleton key={i} />
+                    ))}
+                  </Grid>
+                ) : favorites && favorites.length > 0 ? (
+                  <Grid columns={3} gap="md" responsive={false}>
+                    {favorites.map((artwork) => (
+                      <ArtworkCard
+                        key={artwork.id}
+                        artwork={artwork}
+                        variant="default"
+                        showPrice
+                        showCreator={false}
+                        onFavorite={handleFavorite}
+                      />
+                    ))}
+                  </Grid>
+                ) : (
+                  <EmptyState type="no-favorites" />
+                )}
+              </>
             )}
           </div>
         </div>
