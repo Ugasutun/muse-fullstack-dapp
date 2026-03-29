@@ -3,11 +3,14 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
 import mongoose from 'mongoose'
-import morgan from 'morgan'
 
+import { requestContext } from '@/middleware/requestContext'
+import { requestLogger } from '@/middleware/requestLogger'
 import { errorHandler } from '@/middleware/errorHandler'
 import { notFound } from '@/middleware/notFound'
 import authRoutes from '@/routes/auth'
+import artworkRoutes from '@/routes/artwork'
+import userRoutes from '@/routes/user'
 import aiRoutes from '@/routes/ai'
 import metadataRoutes from '@/routes/metadata'
 import cacheRoutes from '@/routes/cache'
@@ -55,10 +58,15 @@ export function createApp() {
   app.use(express.json({ limit: '10mb' }))
   app.use(express.urlencoded({ extended: true }))
 
+  // ── Request Tracing ──────────────────────────────────────────────────────────
+  app.use(requestContext)
+
+  // ── Structured HTTP Logging (replaces morgan) ────────────────────────────────
   if (process.env.NODE_ENV !== 'test') {
-    app.use(morgan('combined'))
+    app.use(requestLogger)
   }
 
+  // ── Health / Readiness / Liveness ────────────────────────────────────────────
   app.get('/health', async (_req, res, next) => {
     try {
       const health = await healthService.getHealthCheck()
@@ -97,7 +105,10 @@ export function createApp() {
     }
   })
 
+  // ── API Routes ───────────────────────────────────────────────────────────────
   app.use('/api/auth', authRoutes)
+  app.use('/api/artworks', artworkRoutes)
+  app.use('/api/users', userRoutes)
   app.use('/api/ai', aiRoutes)
   app.use('/api/metadata', metadataRoutes)
   app.use('/api/cache', cacheRoutes)
@@ -108,6 +119,7 @@ export function createApp() {
   app.use('/api/jobs', jobRoutes)
   app.use('/api/transactions', transactionRoutes)
 
+  // ── 404 & Global Error Handlers ──────────────────────────────────────────────
   app.use(notFound)
   app.use(errorHandler)
 
@@ -173,147 +185,5 @@ process.on('SIGINT', async () => {
   await shutdown('SIGINT')
   process.exit(0)
 })
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import mongoose from "mongoose";
-import helmet from "helmet";
-import morgan from "morgan";
-import compression from "compression";
-import rateLimit from "express-rate-limit";
 
-import authRoutes from "./routes/auth";
-import artworkRoutes from "./routes/artwork";
-import userRoutes from "./routes/user";
-import aiRoutes from "./routes/ai";
-import metadataRoutes from "./routes/metadata";
-import cacheRoutes from "./routes/cache";
-import cacheManagementRoutes from "./routes/cacheManagement";
-import imageOptimizerRoutes from "./routes/imageOptimizer";
-import favoriteRoutes from "./routes/favorites";
-import apiKeyRoutes from "./routes/apiKeys";
-import jobRoutes from "./routes/jobs";
-import { notFound } from "./middleware/notFound";
-import { errorHandler } from "./middleware/errorHandler";
-import { jobQueueService } from "./services/jobQueueService";
-
-dotenv.config();
-
-const app = express();
-const PORT = process.env.PORT || 3001;
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/muse";
-
-const allowedOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
-  : ["*"];
-
-const corsOptions = {
-  origin: (
-    origin: string | undefined,
-    callback: (err: Error | null, allow?: boolean) => void,
-  ) => {
-    if (!origin) {
-      return callback(null, true);
-    }
-    if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    callback(new Error("Not allowed by CORS"));
-  },
-  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
-  allowedHeaders: [
-    "Origin",
-    "X-Requested-With",
-    "Content-Type",
-    "Accept",
-    "Authorization",
-  ],
-  credentials: true,
-  optionsSuccessStatus: 204,
-};
-
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: "Too many requests from this IP, please try again later.",
-});
-
-app.use(helmet());
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
-app.use(compression());
-app.use(morgan("combined"));
-app.use(globalLimiter);
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
-app.get("/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
-
-app.use("/api/auth", authRoutes);
-app.use("/api/artwork", artworkRoutes);
-app.use("/api/user", userRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/ai", aiRoutes);
-app.use("/api/metadata", metadataRoutes);
-app.use("/api/cache", cacheRoutes);
-app.use("/api/cache", cacheManagementRoutes);
-app.use("/api/images", imageOptimizerRoutes);
-app.use("/api/favorites", favoriteRoutes);
-app.use("/api/keys", apiKeyRoutes);
-app.use("/api/jobs", jobRoutes);
-
-app.use(notFound);
-app.use(errorHandler);
-
-mongoose
-  .connect(MONGODB_URI)
-  .then(async () => {
-    console.log("Connected to MongoDB");
-
-    try {
-      await jobQueueService.initialize();
-      console.log("Job queue service initialized");
-    } catch (error) {
-      console.error("Failed to initialize job queue service:", error);
-    }
-
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  })
-  .catch((error) => {
-    console.error("MongoDB connection error:", error);
-    process.exit(1);
-  });
-
-process.on("SIGTERM", async () => {
-  console.log("SIGTERM received, shutting down gracefully");
-
-  try {
-    await jobQueueService.shutdown();
-    await mongoose.connection.close();
-    console.log("Graceful shutdown completed");
-    process.exit(0);
-  } catch (error) {
-    console.error("Error during shutdown:", error);
-    process.exit(1);
-  }
-});
-
-process.on("SIGINT", async () => {
-  console.log("SIGINT received, shutting down gracefully");
-
-  try {
-    await jobQueueService.shutdown();
-    await mongoose.connection.close();
-    console.log("Graceful shutdown completed");
-    process.exit(0);
-  } catch (error) {
-    console.error("Error during shutdown:", error);
-    process.exit(1);
-  }
-});
-
-export default app;
+export default app

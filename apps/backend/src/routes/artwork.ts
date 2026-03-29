@@ -1,25 +1,19 @@
-import { Router } from "express";
+import { Router } from 'express'
+import {
+  getArtworks,
+  getArtwork,
+  createArtwork,
+  updateArtwork,
+  deleteArtwork,
+} from '@/controllers/artworkController'
+import { authenticate, optionalAuthenticate } from '@/middleware/authMiddleware'
 
-const router = Router();
+const router = Router()
 
-router.get("/", (req, res) => {
-  res.json({ message: "Artwork routes placeholder" });
-});
+router.get('/', optionalAuthenticate, getArtworks)
+router.get('/:id', optionalAuthenticate, getArtwork)
+router.post('/', authenticate, createArtwork)
+router.put('/:id', authenticate, updateArtwork)
+router.delete('/:id', authenticate, deleteArtwork)
 
-router.get("/:id", (req, res) => {
-  res.json({ message: "Get artwork by ID" });
-});
-
-router.post("/", (req, res) => {
-  res.json({ message: "Create artwork" });
-});
-
-router.put("/:id", (req, res) => {
-  res.json({ message: "Update artwork" });
-});
-
-router.delete("/:id", (req, res) => {
-  res.json({ message: "Delete artwork" });
-});
-
-export default router;
+export default router

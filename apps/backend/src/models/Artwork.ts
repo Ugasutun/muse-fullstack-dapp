@@ -1,58 +1,82 @@
-import mongoose, { Schema, Document } from 'mongoose'
+import mongoose, { Document, Schema } from 'mongoose'
 
 export interface IArtwork extends Document {
   title: string
   description: string
   imageUrl: string
   price: string
-  currency: string
+  currency: 'XLM' | 'USD' | 'EUR'
   creator: string
-  owner?: string
+  owner: string
   category: string
   prompt?: string
   aiModel?: string
   tokenId?: string
-  isListed?: boolean
+  isListed: boolean
   metadata?: {
     attributes?: Array<{
       trait_type: string
       value: string | number
       display_type?: 'number' | 'date' | 'string'
     }>
+    category?: string
+    aiModel?: string
+    prompt?: string
     externalUrl?: string
     backgroundColor?: string
+  }
+  image?: string
+  blockchainData?: {
+    network?: string
+    contractId?: string
+    transactionHash?: string
   }
   createdAt: Date
   updatedAt: Date
 }
 
-const ArtworkSchema = new Schema<IArtwork>({
-  title: { type: String, required: true, trim: true },
-  description: { type: String, required: true },
-  imageUrl: { type: String, required: true },
-  price: { type: String, required: true },
-  currency: { type: String, default: 'XLM' },
-  creator: { type: String, required: true, index: true },
-  owner: { type: String, index: true },
-  category: { type: String, required: true, index: true },
-  prompt: String,
-  aiModel: String,
-  tokenId: String,
-  isListed: { type: Boolean, default: true, index: true },
-  metadata: {
-    attributes: [{
-      trait_type: String,
-      value: Schema.Types.Mixed,
-      display_type: { type: String, enum: ['number', 'date', 'string'] }
-    }],
-    externalUrl: String,
-    backgroundColor: String
+const ArtworkSchema: Schema = new Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    description: { type: String, required: true, trim: true },
+    imageUrl: { type: String, required: true },
+    price: { type: String, required: true },
+    currency: { type: String, enum: ['XLM', 'USD', 'EUR'], default: 'XLM' },
+    creator: { type: String, required: true, index: true },
+    owner: { type: String, required: true, index: true },
+    category: { type: String, required: true, lowercase: true, index: true },
+    prompt: { type: String },
+    aiModel: { type: String },
+    tokenId: { type: String, sparse: true },
+    isListed: { type: Boolean, default: false, index: true },
+    metadata: {
+      attributes: [{
+        trait_type: String,
+        value: Schema.Types.Mixed,
+        display_type: { type: String, enum: ['number', 'date', 'string'] },
+      }],
+      category: { type: String },
+      aiModel: { type: String },
+      prompt: { type: String },
+      externalUrl: { type: String },
+      backgroundColor: { type: String },
+    },
+    image: { type: String },
+    blockchainData: {
+      network: { type: String },
+      contractId: { type: String },
+      transactionHash: { type: String },
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
-}, {
-  timestamps: true
-})
+)
 
-// Indexes for performance
+ArtworkSchema.index({ title: 'text', description: 'text', prompt: 'text' })
+ArtworkSchema.index({ creator: 1, isListed: 1 })
 ArtworkSchema.index({ category: 1, isListed: 1, createdAt: -1 })
 ArtworkSchema.index({ creator: 1, createdAt: -1 })
 ArtworkSchema.index({ price: 1 })
@@ -130,8 +154,5 @@ ArtworkSchema.pre('deleteOne', { document: true, query: false }, async function(
   )
 })
 
-// Enable virtuals in JSON/Object output
-ArtworkSchema.set('toJSON', { virtuals: true })
-ArtworkSchema.set('toObject', { virtuals: true })
-
 export const Artwork = mongoose.model<IArtwork>('Artwork', ArtworkSchema)
+export default Artwork

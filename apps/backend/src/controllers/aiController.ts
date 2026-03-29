@@ -13,6 +13,7 @@ export const generateImage = async (
   res: Response,
   next: NextFunction,
 ) => {
+  const log = logger.child({ requestId: req.requestId })
   try {
     const authReq = req as AuthRequest;
     const {
@@ -45,7 +46,7 @@ export const generateImage = async (
           : ("1024x1024" as const),
     };
 
-    logger.info(
+    log.info(
       `Starting image generation for user ${authReq.user?.address}, prompt length: ${prompt.length}`,
     );
 
@@ -58,7 +59,7 @@ export const generateImage = async (
     });
 
     if (result.status === "completed") {
-      logger.info(`Image generation completed: ${result.generationId}`);
+      log.info(`Image generation completed: ${result.generationId}`);
     }
 
     res.status(202).json({
@@ -74,7 +75,7 @@ export const generateImage = async (
       },
     });
   } catch (error) {
-    logger.error("Image generation failed:", error);
+    log.error("Image generation failed:", error);
 
     if (error instanceof AIProviderError) {
       if (error.statusCode === 429) {
@@ -99,6 +100,7 @@ export const getGenerationStatus = async (
   res: Response,
   next: NextFunction,
 ) => {
+  const log = logger.child({ requestId: req.requestId })
   try {
     const { id } = req.params;
 
@@ -106,6 +108,8 @@ export const getGenerationStatus = async (
       const err = createError("Generation ID is required", 400);
       return next(err);
     }
+
+    log.info('Fetching generation status', { generationId: id })
 
     const generation = generationStore.get(id);
 
@@ -135,7 +139,7 @@ export const getGenerationStatus = async (
       });
     }
 
-    res.json({
+    res.status(202).json({
       success: true,
       data: {
         generationId: generation.generationId,
@@ -149,6 +153,7 @@ export const getGenerationStatus = async (
       },
     });
   } catch (error) {
+    log.error('Failed to fetch generation status', { generationId: req.params.id, error })
     const err = createError("Failed to fetch generation status", 500);
     next(err);
   }

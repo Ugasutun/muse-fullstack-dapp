@@ -19,6 +19,7 @@ export const getProfile = async (
   res: Response,
   next: NextFunction,
 ) => {
+  const log = logger.child({ requestId: req.requestId })
   try {
     const { address } = req.params;
 
@@ -29,6 +30,7 @@ export const getProfile = async (
       return next(err);
     }
 
+    log.info('User profile fetched', { address })
     res.json({
       success: true,
       data: user,
@@ -45,6 +47,7 @@ export const getProfileById = async (
   res: Response,
   next: NextFunction,
 ) => {
+  const log = logger.child({ requestId: req.requestId })
   try {
     const { id } = req.params;
 
@@ -55,6 +58,7 @@ export const getProfileById = async (
       return next(err);
     }
 
+    log.info('User profile fetched by ID', { userId: id })
     res.json({
       success: true,
       data: user,
@@ -71,6 +75,7 @@ export const updateProfile = async (
   res: Response,
   next: NextFunction,
 ) => {
+  const log = logger.child({ requestId: req.requestId })
   try {
     const { address } = req.params;
     const updates = req.body;
@@ -122,7 +127,7 @@ export const updateProfile = async (
       return next(err);
     }
 
-    logger.info(`Profile updated for user ${address}`);
+    log.info(`Profile updated for user ${address}`);
 
     res.json({
       success: true,
@@ -140,6 +145,7 @@ export const deleteProfile = async (
   res: Response,
   next: NextFunction,
 ) => {
+  const log = logger.child({ requestId: req.requestId })
   try {
     const { address } = req.params;
 
@@ -160,7 +166,7 @@ export const deleteProfile = async (
       return next(err);
     }
 
-    logger.info(`Profile deleted for user ${address}`);
+    log.info(`Profile deleted for user ${address}`);
 
     res.json({
       success: true,
@@ -178,6 +184,7 @@ export const updatePreferences = async (
   res: Response,
   next: NextFunction,
 ) => {
+  const log = logger.child({ requestId: req.requestId })
   try {
     const { address } = req.params;
     const { preferences } = req.body;
@@ -203,6 +210,7 @@ export const updatePreferences = async (
       return next(err);
     }
 
+    log.info('Preferences updated', { address })
     res.json({
       success: true,
       data: user.preferences,
@@ -219,6 +227,7 @@ export const getUserActivity = async (
   res: Response,
   next: NextFunction,
 ) => {
+  const log = logger.child({ requestId: req.requestId })
   try {
     const { address } = req.params;
     const { page = 1, limit = 20 } = req.query;
@@ -259,6 +268,7 @@ export const getUserActivity = async (
       }),
     ]);
 
+    log.info('User activity fetched', { address, page: pageNum })
     res.json({
       success: true,
       data: {
@@ -294,6 +304,7 @@ export const getUserStats = async (
   res: Response,
   next: NextFunction,
 ) => {
+  const log = logger.child({ requestId: req.requestId })
   try {
     const { address } = req.params;
 
@@ -335,6 +346,7 @@ export const getUserStats = async (
       await user.save();
     }
 
+    log.info('User stats fetched', { address })
     res.json({
       success: true,
       data: stats,
@@ -351,6 +363,7 @@ export const searchUsers = async (
   res: Response,
   next: NextFunction,
 ) => {
+  const log = logger.child({ requestId: req.requestId })
   try {
     const { q, page = 1, limit = 20 } = req.query;
 
@@ -390,6 +403,7 @@ export const searchUsers = async (
       }),
     ]);
 
+    log.info('User search completed', { query: q, resultCount: users.length })
     res.json({
       success: true,
       data: {
@@ -412,6 +426,7 @@ export const getLeaderboard = async (
   res: Response,
   next: NextFunction,
 ) => {
+  const log = logger.child({ requestId: req.requestId })
   try {
     const { limit = 10, type = "followers" } = req.query;
 
@@ -430,6 +445,7 @@ export const getLeaderboard = async (
       .sort(sortBy)
       .limit(limitNum);
 
+    log.info('Leaderboard fetched', { type, limit: limitNum })
     res.json({
       success: true,
       data: users,

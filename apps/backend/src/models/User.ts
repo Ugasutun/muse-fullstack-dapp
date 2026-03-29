@@ -1,20 +1,25 @@
-import mongoose, { Schema, Document } from 'mongoose'
+import mongoose, { Document, Schema } from 'mongoose'
 
 export interface IUser extends Document {
   address: string
-  username?: string
+  username: string
   email?: string
   bio?: string
   profileImage?: string
+  avatar?: string
   bannerImage?: string
+  banner?: string
   website?: string
   twitter?: string
   discord?: string
-  isVerified?: boolean
-  stats: {
-    created: number
-    collected: number
-    favorites: number
+  tier: 'free' | 'pro' | 'premium'
+  isVerified: boolean
+  stats?: {
+    artworks?: number
+    sales?: number
+    created?: number
+    collected?: number
+    favorites?: number
     totalSales?: string
     totalPurchases?: string
     followers?: number
@@ -29,54 +34,70 @@ export interface IUser extends Document {
       profileVisibility?: 'public' | 'private'
       showEmail?: boolean
     }
+    display?: string
+    theme?: string
+    currency?: string
+    language?: string
   }
   createdAt: Date
   updatedAt: Date
 }
 
-const UserSchema = new Schema<IUser>({
-  address: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
-    index: true
-  },
-  username: { type: String, trim: true, index: true },
-  email: { type: String, trim: true, lowercase: true },
-  bio: { type: String, maxlength: 500 },
-  profileImage: String,
-  bannerImage: String,
-  website: String,
-  twitter: String,
-  discord: String,
-  isVerified: { type: Boolean, default: false },
-  stats: {
-    created: { type: Number, default: 0 },
-    collected: { type: Number, default: 0 },
-    favorites: { type: Number, default: 0 },
-    totalSales: { type: String, default: '0' },
-    totalPurchases: { type: String, default: '0' },
-    followers: { type: Number, default: 0 },
-    following: { type: Number, default: 0 }
-  },
-  preferences: {
-    notifications: {
-      email: { type: Boolean, default: true },
-      push: { type: Boolean, default: true }
+const UserSchema: Schema = new Schema(
+  {
+    address: { type: String, required: true, unique: true, index: true, trim: true },
+    username: { type: String, required: true, trim: true, index: true },
+    email: { type: String, sparse: true, trim: true, lowercase: true },
+    bio: { type: String, trim: true, maxlength: 500 },
+    profileImage: { type: String },
+    avatar: { type: String },
+    bannerImage: { type: String },
+    banner: { type: String },
+    website: { type: String },
+    twitter: { type: String },
+    discord: { type: String },
+    tier: {
+      type: String,
+      enum: ['free', 'pro', 'premium'],
+      default: 'free',
     },
-    privacy: {
-      profileVisibility: { 
-        type: String, 
-        enum: ['public', 'private'], 
-        default: 'public' 
+    isVerified: { type: Boolean, default: false },
+    stats: {
+      artworks: { type: Number, default: 0 },
+      sales: { type: Number, default: 0 },
+      created: { type: Number, default: 0 },
+      collected: { type: Number, default: 0 },
+      favorites: { type: Number, default: 0 },
+      totalSales: { type: String, default: '0' },
+      totalPurchases: { type: String, default: '0' },
+      followers: { type: Number, default: 0 },
+      following: { type: Number, default: 0 },
+    },
+    preferences: {
+      notifications: {
+        email: { type: Boolean, default: true },
+        push: { type: Boolean, default: true },
       },
-      showEmail: { type: Boolean, default: false }
-    }
+      privacy: {
+        profileVisibility: {
+          type: String,
+          enum: ['public', 'private'],
+          default: 'public',
+        },
+        showEmail: { type: Boolean, default: false },
+      },
+      display: { type: String, default: 'grid' },
+      theme: { type: String, default: 'dark' },
+      currency: { type: String, default: 'XLM' },
+      language: { type: String, default: 'en' },
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
-}, {
-  timestamps: true
-})
+)
 
 // Indexes for performance
 UserSchema.index({ username: 1 })
@@ -175,8 +196,5 @@ UserSchema.virtual('notifications', {
   justOne: false
 })
 
-// Enable virtuals in JSON/Object output
-UserSchema.set('toJSON', { virtuals: true })
-UserSchema.set('toObject', { virtuals: true })
-
 export const User = mongoose.model<IUser>('User', UserSchema)
+export default User
