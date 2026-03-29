@@ -133,4 +133,8 @@ CollectionSchema.index({ 'stats.totalArtworks': -1 })
 CollectionSchema.index({ tags: 1 })
 CollectionSchema.index({ createdAt: -1 })
 
+// Enable virtuals in JSON/Object output
+CollectionSchema.set('toJSON', { virtuals: true })
+CollectionSchema.set('toObject', { virtuals: true })
+
 export const Collection = mongoose.model<ICollection>('Collection', CollectionSchema)

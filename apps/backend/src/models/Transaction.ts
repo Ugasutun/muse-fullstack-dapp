@@ -100,4 +100,8 @@ TransactionSchema.index({ status: 1, createdAt: -1 })
 TransactionSchema.index({ blockNumber: 1 })
 TransactionSchema.index({ price: 1 })
 
+// Enable virtuals in JSON/Object output
+TransactionSchema.set('toJSON', { virtuals: true })
+TransactionSchema.set('toObject', { virtuals: true })
+
 export const Transaction = mongoose.model<ITransaction>('Transaction', TransactionSchema)

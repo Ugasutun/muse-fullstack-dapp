@@ -108,4 +108,8 @@ NotificationSchema.index({ category: 1, createdAt: -1 })
 NotificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }) // Auto-expire notifications
 NotificationSchema.index({ createdAt: -1 })
 
+// Enable virtuals in JSON/Object output
+NotificationSchema.set('toJSON', { virtuals: true })
+NotificationSchema.set('toObject', { virtuals: true })
+
 export const Notification = mongoose.model<INotification>('Notification', NotificationSchema)

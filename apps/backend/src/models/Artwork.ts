@@ -58,4 +58,80 @@ ArtworkSchema.index({ creator: 1, createdAt: -1 })
 ArtworkSchema.index({ price: 1 })
 ArtworkSchema.index({ createdAt: -1 })
 
+// Virtual relationships
+ArtworkSchema.virtual('transactions', {
+  ref: 'Transaction',
+  localField: '_id',
+  foreignField: 'artwork',
+  justOne: false
+})
+
+ArtworkSchema.virtual('bids', {
+  ref: 'Bid',
+  localField: '_id',
+  foreignField: 'artwork',
+  justOne: false
+})
+
+ArtworkSchema.virtual('auction', {
+  ref: 'Auction',
+  localField: '_id',
+  foreignField: 'artwork',
+  justOne: true
+})
+
+ArtworkSchema.virtual('comments', {
+  ref: 'Comment',
+  localField: '_id',
+  foreignField: 'artwork',
+  justOne: false
+})
+
+ArtworkSchema.virtual('likes', {
+  ref: 'Like',
+  localField: '_id',
+  foreignField: 'artwork',
+  justOne: false
+})
+
+ArtworkSchema.virtual('favorites', {
+  ref: 'Favorite',
+  localField: '_id',
+  foreignField: 'artwork',
+  justOne: false
+})
+
+// Cascade delete related entities when artwork is deleted
+ArtworkSchema.pre('deleteOne', { document: true, query: false }, async function() {
+  const artworkId = this._id
+  
+  // Delete related transactions
+  await mongoose.model('Transaction').deleteMany({ artwork: artworkId })
+  
+  // Delete related bids
+  await mongoose.model('Bid').deleteMany({ artwork: artworkId })
+  
+  // Delete related auction
+  await mongoose.model('Auction').deleteOne({ artwork: artworkId })
+  
+  // Delete related comments
+  await mongoose.model('Comment').deleteMany({ artwork: artworkId })
+  
+  // Delete related likes
+  await mongoose.model('Like').deleteMany({ artwork: artworkId })
+  
+  // Delete related favorites
+  await mongoose.model('Favorite').deleteMany({ artwork: artworkId })
+  
+  // Remove from collections
+  await mongoose.model('Collection').updateMany(
+    { artworks: artworkId },
+    { $pull: { artworks: artworkId } }
+  )
+})
+
+// Enable virtuals in JSON/Object output
+ArtworkSchema.set('toJSON', { virtuals: true })
+ArtworkSchema.set('toObject', { virtuals: true })
+
 export const Artwork = mongoose.model<IArtwork>('Artwork', ArtworkSchema)

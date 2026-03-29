@@ -95,4 +95,8 @@ BidSchema.pre('save', function(this: IBid, next: any) {
   next()
 })
 
+// Enable virtuals in JSON/Object output
+BidSchema.set('toJSON', { virtuals: true })
+BidSchema.set('toObject', { virtuals: true })
+
 export const Bid = mongoose.model<IBid>('Bid', BidSchema)

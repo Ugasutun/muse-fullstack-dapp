@@ -83,4 +83,100 @@ UserSchema.index({ username: 1 })
 UserSchema.index({ address: 1 })
 UserSchema.index({ 'stats.followers': -1 })
 
+// Virtual relationships - enable reverse lookups
+UserSchema.virtual('createdArtworks', {
+  ref: 'Artwork',
+  localField: 'address',
+  foreignField: 'creator',
+  justOne: false
+})
+
+UserSchema.virtual('ownedArtworks', {
+  ref: 'Artwork',
+  localField: 'address',
+  foreignField: 'owner',
+  justOne: false
+})
+
+UserSchema.virtual('transactions', {
+  ref: 'Transaction',
+  localField: 'address',
+  foreignField: 'from',
+  justOne: false
+})
+
+UserSchema.virtual('receivedTransactions', {
+  ref: 'Transaction',
+  localField: 'address',
+  foreignField: 'to',
+  justOne: false
+})
+
+UserSchema.virtual('bids', {
+  ref: 'Bid',
+  localField: 'address',
+  foreignField: 'bidder',
+  justOne: false
+})
+
+UserSchema.virtual('auctions', {
+  ref: 'Auction',
+  localField: 'address',
+  foreignField: 'seller',
+  justOne: false
+})
+
+UserSchema.virtual('collections', {
+  ref: 'Collection',
+  localField: 'address',
+  foreignField: 'creator',
+  justOne: false
+})
+
+UserSchema.virtual('comments', {
+  ref: 'Comment',
+  localField: 'address',
+  foreignField: 'author',
+  justOne: false
+})
+
+UserSchema.virtual('likes', {
+  ref: 'Like',
+  localField: 'address',
+  foreignField: 'user',
+  justOne: false
+})
+
+UserSchema.virtual('favorites', {
+  ref: 'Favorite',
+  localField: 'address',
+  foreignField: 'user',
+  justOne: false
+})
+
+UserSchema.virtual('followers_list', {
+  ref: 'Follow',
+  localField: 'address',
+  foreignField: 'following',
+  justOne: false
+})
+
+UserSchema.virtual('following_list', {
+  ref: 'Follow',
+  localField: 'address',
+  foreignField: 'follower',
+  justOne: false
+})
+
+UserSchema.virtual('notifications', {
+  ref: 'Notification',
+  localField: 'address',
+  foreignField: 'recipient',
+  justOne: false
+})
+
+// Enable virtuals in JSON/Object output
+UserSchema.set('toJSON', { virtuals: true })
+UserSchema.set('toObject', { virtuals: true })
+
 export const User = mongoose.model<IUser>('User', UserSchema)
