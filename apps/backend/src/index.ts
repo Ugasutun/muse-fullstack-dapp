@@ -1,22 +1,12 @@
-import 'dotenv/config'
-import express from 'express'
-import cors from 'cors'
-import helmet from 'helmet'
 import compression from 'compression'
-import morgan from 'morgan'
-import rateLimit from 'express-rate-limit'
+import cors from 'cors'
+import dotenv from 'dotenv'
+import express from 'express'
 import mongoose from 'mongoose'
 
 import { requestContext } from '@/middleware/requestContext'
 import { errorHandler } from '@/middleware/errorHandler'
-import { notFoundHandler } from '@/middleware/notFound'
-import { createLogger } from '@/utils/logger'
-import databaseService from '@/services/databaseService'
-import cacheService from '@/services/cacheService'
-import { runMigrations } from '@/services/migrationService'
-import { jobQueueService } from '@/services/jobQueueService'
-
-// Route imports
+import { notFound } from '@/middleware/notFound'
 import authRoutes from '@/routes/auth'
 import artworkRoutes from '@/routes/artwork'
 import userRoutes from '@/routes/user'
@@ -28,135 +18,165 @@ import imageOptimizerRoutes from '@/routes/imageOptimizer'
 import favoriteRoutes from '@/routes/favorites'
 import apiKeyRoutes from '@/routes/apiKeys'
 import jobRoutes from '@/routes/jobs'
+import transactionRoutes from '@/routes/transactions'
+import healthService from '@/services/healthService'
+import cacheService from '@/services/cacheService'
+import { jobQueueService } from '@/services/jobQueueService'
+import { createLogger } from '@/utils/logger'
+
+dotenv.config()
 
 const logger = createLogger('Server')
-const PORT = parseInt(process.env.PORT || '3001', 10)
+const PORT = Number(process.env.PORT || 3001)
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/muse'
 
-const app = express()
+export function createApp() {
+  const app = express()
 
-// ── Security & Parsing Middleware ────────────────────────────────────────────
-app.use(helmet())
+  const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
+    : [process.env.FRONTEND_URL || 'http://localhost:3000']
 
-const allowedOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
-  : ['*']
+  const corsOptions = {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        return callback(null, true)
+      }
+      callback(new Error('Not allowed by CORS'))
+    },
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+    credentials: true,
+    optionsSuccessStatus: 204
+  }
 
-const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    if (!origin) {
-      return callback(null, true)
-    }
-    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-      return callback(null, true)
-    }
-    callback(new Error('Not allowed by CORS'))
-  },
-  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
-  credentials: true,
-  optionsSuccessStatus: 204,
-}
+  app.use(cors(corsOptions))
+  app.options('*', cors(corsOptions))
+  app.use(compression())
+  app.use(express.json({ limit: '10mb' }))
+  app.use(express.urlencoded({ extended: true }))
 
-app.use(cors(corsOptions))
-app.options('*', cors(corsOptions))
+  // ── Request Tracing ──────────────────────────────────────────────────────────
+  app.use(requestContext)
 
-app.use(compression())
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true }))
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Too many requests from this IP, please try again later.',
-})
-app.use(limiter)
-
-// ── Request Tracing ──────────────────────────────────────────────────────────
-app.use(requestContext)
-
-// ── HTTP Logging ─────────────────────────────────────────────────────────────
-if (process.env.NODE_ENV !== 'test') {
-  app.use(morgan('combined'))
-}
-
-// ── Health Check ─────────────────────────────────────────────────────────────
-app.get('/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV || 'development',
-  })
-})
-
-// ── API Routes ───────────────────────────────────────────────────────────────
-app.use('/api/auth', authRoutes)
-app.use('/api/artworks', artworkRoutes)
-app.use('/api/users', userRoutes)
-app.use('/api/ai', aiRoutes)
-app.use('/api/metadata', metadataRoutes)
-app.use('/api/cache', cacheRoutes)
-app.use('/api/cache', cacheManagementRoutes)
-app.use('/api/images', imageOptimizerRoutes)
-app.use('/api/favorites', favoriteRoutes)
-app.use('/api/keys', apiKeyRoutes)
-app.use('/api/jobs', jobRoutes)
-
-// ── 404 & Global Error Handlers ──────────────────────────────────────────────
-app.use(notFoundHandler)
-app.use(errorHandler)
-
-// ── Graceful Startup ─────────────────────────────────────────────────────────
-async function start() {
-  try {
-    await databaseService.connect()
-    logger.info('Database connected successfully')
-
+  // ── Health / Readiness / Liveness ────────────────────────────────────────────
+  app.get('/health', async (_req, res, next) => {
     try {
-      await runMigrations()
-      logger.info('Migrations executed completely')
+      const health = await healthService.getHealthCheck()
+      res.status(200).json(health)
     } catch (error) {
-       logger.error('Failed to run migrations', { error })
+      next(error)
     }
+  })
 
+  app.get('/health/simple', (_req, res) => {
+    res.status(200).json({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      service: 'muse-backend'
+    })
+  })
+
+  app.get('/ready', async (_req, res, next) => {
+    try {
+      const readiness = await healthService.getReadinessCheck()
+      res.status(readiness.ready ? 200 : 503).json({
+        ...readiness,
+        timestamp: new Date().toISOString()
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  app.get('/live', async (_req, res, next) => {
+    try {
+      const liveness = await healthService.getLivenessCheck()
+      res.status(200).json(liveness)
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  // ── API Routes ───────────────────────────────────────────────────────────────
+  app.use('/api/auth', authRoutes)
+  app.use('/api/artworks', artworkRoutes)
+  app.use('/api/users', userRoutes)
+  app.use('/api/ai', aiRoutes)
+  app.use('/api/metadata', metadataRoutes)
+  app.use('/api/cache', cacheRoutes)
+  app.use('/api/cache', cacheManagementRoutes)
+  app.use('/api/images', imageOptimizerRoutes)
+  app.use('/api/favorites', favoriteRoutes)
+  app.use('/api/keys', apiKeyRoutes)
+  app.use('/api/jobs', jobRoutes)
+  app.use('/api/transactions', transactionRoutes)
+
+  // ── 404 & Global Error Handlers ──────────────────────────────────────────────
+  app.use(notFound)
+  app.use(errorHandler)
+
+  return app
+}
+
+export const app = createApp()
+
+export async function startServer() {
+  await mongoose.connect(MONGODB_URI)
+  logger.info('Connected to MongoDB')
+
+  if (process.env.NODE_ENV !== 'test') {
     try {
       await jobQueueService.initialize()
       logger.info('Job queue service initialized')
     } catch (error) {
-      logger.error('Failed to initialize job queue service:', { error })
+      logger.error('Failed to initialize job queue service:', error)
     }
+  }
 
-    const server = app.listen(PORT, () => {
-      logger.info(`Server running on port ${PORT}`, { port: PORT, env: process.env.NODE_ENV })
-      logger.info(`Health check: http://localhost:${PORT}/health`)
-    })
+  return app.listen(PORT, () => {
+    logger.info(`Server running on port ${PORT}`)
+    logger.info(`Cache stats: ${JSON.stringify(cacheService.getCacheStats())}`)
+  })
+}
 
-    // ── Graceful Shutdown ──────────────────────────────────────────────────
-    const shutdown = async (signal: string) => {
-      logger.warn(`Received ${signal} — shutting down gracefully`)
-      server.close(async () => {
-        try {
-          await jobQueueService.shutdown()
-          await cacheService.disconnect()
-          await databaseService.disconnect()
-          logger.info('Services disconnected. Server closed.')
-          process.exit(0)
-        } catch (err) {
-          logger.error('Error during shutdown', { error: err })
-          process.exit(1)
-        }
-      })
-    }
-
-    process.on('SIGTERM', () => shutdown('SIGTERM'))
-    process.on('SIGINT', () => shutdown('SIGINT'))
-
-  } catch (err) {
-    logger.error('Failed to start server', { error: err })
+if (process.env.NODE_ENV !== 'test') {
+  startServer().catch((error) => {
+    logger.error('Failed to start server:', error)
     process.exit(1)
+  })
+}
+
+async function shutdown(signal: string) {
+  logger.info(`${signal} received, shutting down gracefully`)
+
+  try {
+    await jobQueueService.shutdown()
+  } catch (error) {
+    logger.warn('Job queue shutdown encountered an error:', error)
+  }
+
+  try {
+    await cacheService.disconnect()
+  } catch (error) {
+    logger.warn('Cache disconnect encountered an error:', error)
+  }
+
+  try {
+    await mongoose.connection.close()
+  } catch (error) {
+    logger.warn('MongoDB disconnect encountered an error:', error)
   }
 }
 
-start()
+process.on('SIGTERM', async () => {
+  await shutdown('SIGTERM')
+  process.exit(0)
+})
+
+process.on('SIGINT', async () => {
+  await shutdown('SIGINT')
+  process.exit(0)
+})
 
 export default app

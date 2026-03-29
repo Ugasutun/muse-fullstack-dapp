@@ -82,5 +82,64 @@ ArtworkSchema.index({ creator: 1, createdAt: -1 })
 ArtworkSchema.index({ price: 1 })
 ArtworkSchema.index({ createdAt: -1 })
 
+// Virtual relationships
+ArtworkSchema.virtual('transactions', {
+  ref: 'Transaction',
+  localField: '_id',
+  foreignField: 'artwork',
+  justOne: false
+})
+
+ArtworkSchema.virtual('bids', {
+  ref: 'Bid',
+  localField: '_id',
+  foreignField: 'artwork',
+  justOne: false
+})
+
+ArtworkSchema.virtual('auction', {
+  ref: 'Auction',
+  localField: '_id',
+  foreignField: 'artwork',
+  justOne: true
+})
+
+ArtworkSchema.virtual('comments', {
+  ref: 'Comment',
+  localField: '_id',
+  foreignField: 'artwork',
+  justOne: false
+})
+
+ArtworkSchema.virtual('likes', {
+  ref: 'Like',
+  localField: '_id',
+  foreignField: 'artwork',
+  justOne: false
+})
+
+ArtworkSchema.virtual('favorites', {
+  ref: 'Favorite',
+  localField: '_id',
+  foreignField: 'artwork',
+  justOne: false
+})
+
+// Cascade delete related entities when artwork is deleted
+ArtworkSchema.pre('deleteOne', { document: true, query: false }, async function() {
+  const artworkId = this._id
+  
+  await mongoose.model('Transaction').deleteMany({ artwork: artworkId })
+  await mongoose.model('Bid').deleteMany({ artwork: artworkId })
+  await mongoose.model('Auction').deleteOne({ artwork: artworkId })
+  await mongoose.model('Comment').deleteMany({ artwork: artworkId })
+  await mongoose.model('Like').deleteMany({ artwork: artworkId })
+  await mongoose.model('Favorite').deleteMany({ artwork: artworkId })
+  await mongoose.model('Collection').updateMany(
+    { artworks: artworkId },
+    { $pull: { artworks: artworkId } }
+  )
+})
+
 export const Artwork = mongoose.model<IArtwork>('Artwork', ArtworkSchema)
 export default Artwork

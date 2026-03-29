@@ -40,4 +40,8 @@ FollowSchema.index({ following: 1, status: 1, createdAt: -1 })
 FollowSchema.index({ follower: 1, status: 1, createdAt: -1 })
 FollowSchema.index({ status: 1, createdAt: -1 })
 
+// Enable virtuals in JSON/Object output
+FollowSchema.set('toJSON', { virtuals: true })
+FollowSchema.set('toObject', { virtuals: true })
+
 export const Follow = mongoose.model<IFollow>('Follow', FollowSchema)

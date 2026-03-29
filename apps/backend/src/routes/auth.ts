@@ -1,11 +1,12 @@
-import { Router } from 'express'
-import { login, getChallenge } from '@/controllers/authController'
-import { validate } from '@/middleware/validate'
-import { loginSchema, challengeSchema } from '@/schemas/authSchemas'
+import { Router } from "express";
+import { login, getChallenge } from "@/controllers/authController";
+import { validate } from "@/middleware/validate";
+import { loginSchema, challengeSchema } from "@/schemas/authSchemas";
 
-import { authLimiter } from '@/middleware/rateLimitMiddleware'
+import { authLimiter } from "@/middleware/rateLimitMiddleware";
+import { authSizeLimit } from "@/middleware/sizeLimitMiddleware";
 
-const router = Router()
+const router = Router();
 
 /**
  * @openapi
@@ -18,7 +19,13 @@ const router = Router()
  *       200:
  *         description: Challenge nonce returned successfully
  */
-router.get('/challenge', authLimiter, validate(challengeSchema), getChallenge)
+router.get(
+  "/challenge",
+  authLimiter,
+  authSizeLimit,
+  validate(challengeSchema),
+  getChallenge,
+);
 
 /**
  * @openapi
@@ -44,6 +51,6 @@ router.get('/challenge', authLimiter, validate(challengeSchema), getChallenge)
  *       401:
  *         description: Invalid signature or public key
  */
-router.post('/login', authLimiter, validate(loginSchema), login)
+router.post("/login", authLimiter, authSizeLimit, validate(loginSchema), login);
 
-export default router
+export default router;

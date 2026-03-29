@@ -1,13 +1,13 @@
-import { Router } from 'express'
-import { generateImage, getGenerationStatus } from '@/controllers/aiController'
-import { aiStatusCache } from '@/middleware/cacheMiddleware'
-import { authenticate } from '@/middleware/authMiddleware'
+import { Router } from "express";
+import { generateImage, getGenerationStatus } from "@/controllers/aiController";
+import { aiStatusCache } from "@/middleware/cacheMiddleware";
+import { authenticate } from "@/middleware/authMiddleware";
 
-import { aiGenerationLimiter } from '@/middleware/rateLimitMiddleware'
+import { aiGenerationLimiter } from "@/middleware/rateLimitMiddleware";
+import { aiPromptSizeLimit } from "@/middleware/sizeLimitMiddleware";
 
-const router = Router()
+const router = Router();
 
-router.post('/generate', authenticate, aiGenerationLimiter, generateImage)
 /**
  * @openapi
  * /api/ai/generate:
@@ -26,15 +26,39 @@ router.post('/generate', authenticate, aiGenerationLimiter, generateImage)
  *             properties:
  *               prompt:
  *                 type: string
+ *                 description: The text prompt for image generation
+ *                 maxLength: 1000
+ *               style:
+ *                 type: string
+ *                 description: Art style (digital-art, abstract, realistic, etc.)
+ *                 default: digital-art
+ *               quality:
+ *                 type: string
+ *                 description: Generation quality (standard, hd)
+ *                 default: standard
  *               model:
  *                 type: string
+ *                 description: AI model to use (dall-e-3, dall-e-2, stability-ai)
+ *                 default: dall-e-3
  *     responses:
  *       202:
- *         description: Generation started
+ *         description: Generation started successfully
+ *       400:
+ *         description: Invalid prompt or parameters
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized - authentication required
+ *       413:
+ *         description: Payload too large - prompt exceeds size limit
+ *       429:
+ *         description: Rate limit exceeded
  */
-router.post('/generate', authenticate, generateImage)
+router.post(
+  "/generate",
+  authenticate,
+  aiGenerationLimiter,
+  aiPromptSizeLimit,
+  generateImage,
+);
 
 /**
  * @openapi
@@ -51,10 +75,15 @@ router.post('/generate', authenticate, generateImage)
  *         required: true
  *         schema:
  *           type: string
+ *         description: The generation ID returned from the generate endpoint
  *     responses:
  *       200:
  *         description: Current status of the generation
+ *       401:
+ *         description: Unauthorized - authentication required
+ *       404:
+ *         description: Generation not found
  */
-router.get('/status/:id', authenticate, aiStatusCache, getGenerationStatus)
+router.get("/status/:id", authenticate, aiStatusCache, getGenerationStatus);
 
-export default router
+export default router;

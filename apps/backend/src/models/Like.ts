@@ -32,4 +32,8 @@ LikeSchema.index({ user: 1, createdAt: -1 })
 LikeSchema.index({ artwork: 1, createdAt: -1 })
 LikeSchema.index({ createdAt: -1 })
 
+// Enable virtuals in JSON/Object output
+LikeSchema.set('toJSON', { virtuals: true })
+LikeSchema.set('toObject', { virtuals: true })
+
 export const Like = mongoose.model<ILike>('Like', LikeSchema)

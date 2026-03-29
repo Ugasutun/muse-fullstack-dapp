@@ -32,4 +32,8 @@ FavoriteSchema.index({ user: 1, createdAt: -1 })
 FavoriteSchema.index({ artwork: 1, createdAt: -1 })
 FavoriteSchema.index({ createdAt: -1 })
 
+// Enable virtuals in JSON/Object output
+FavoriteSchema.set('toJSON', { virtuals: true })
+FavoriteSchema.set('toObject', { virtuals: true })
+
 export const Favorite = mongoose.model<IFavorite>('Favorite', FavoriteSchema)

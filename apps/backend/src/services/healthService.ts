@@ -134,6 +134,16 @@ class HealthService {
     const startTime = Date.now()
     
     try {
+      if (process.env.NODE_ENV === 'test') {
+        return {
+          status: 'degraded',
+          responseTime: Date.now() - startTime,
+          details: {
+            message: 'Skipped external Stellar health check in test environment'
+          }
+        }
+      }
+
       const stellarService = getStellarService()
       
       // Test Stellar RPC connectivity by getting the latest ledger
@@ -160,6 +170,17 @@ class HealthService {
   async checkAIServices(): Promise<HealthCheck> {
     const startTime = Date.now()
     const results: { [key: string]: HealthCheck } = {}
+
+    if (process.env.NODE_ENV === 'test') {
+      return {
+        status: 'degraded',
+        responseTime: Date.now() - startTime,
+        details: {
+          testMode: true,
+          message: 'Skipped external AI service checks in test environment'
+        }
+      }
+    }
     
     // Check OpenAI
     if (process.env.OPENAI_API_KEY) {
