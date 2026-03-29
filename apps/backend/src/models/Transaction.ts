@@ -9,12 +9,22 @@ export interface ITransaction extends Document {
   price: string
   currency: string
   network: 'testnet' | 'mainnet'
-  status: 'pending' | 'completed' | 'failed' | 'cancelled'
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+  idempotencyKey?: string
+  externalId?: string
   blockNumber?: number
   gasUsed?: string
   gasPrice?: string
   fee?: string
+  failureReason?: string
+  processingStartedAt?: Date
   metadata?: Record<string, any>
+  statusHistory: Array<{
+    status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+    timestamp: Date
+    reason?: string
+    metadata?: Record<string, any>
+  }>
   createdAt: Date
   updatedAt: Date
   completedAt?: Date
@@ -72,8 +82,20 @@ const TransactionSchema = new Schema<ITransaction>({
   status: {
     type: String,
     required: true,
-    enum: ['pending', 'completed', 'failed', 'cancelled'],
+    enum: ['pending', 'processing', 'completed', 'failed', 'cancelled'],
     default: 'pending',
+    index: true
+  },
+  idempotencyKey: {
+    type: String,
+    trim: true,
+    sparse: true,
+    index: true
+  },
+  externalId: {
+    type: String,
+    trim: true,
+    sparse: true,
     index: true
   },
   blockNumber: {
@@ -83,7 +105,23 @@ const TransactionSchema = new Schema<ITransaction>({
   gasUsed: String,
   gasPrice: String,
   fee: String,
+  failureReason: String,
+  processingStartedAt: Date,
   metadata: Schema.Types.Mixed,
+  statusHistory: [{
+    status: {
+      type: String,
+      enum: ['pending', 'processing', 'completed', 'failed', 'cancelled'],
+      required: true
+    },
+    timestamp: {
+      type: Date,
+      required: true,
+      default: Date.now
+    },
+    reason: String,
+    metadata: Schema.Types.Mixed
+  }],
   completedAt: Date
 }, {
   timestamps: true
@@ -99,6 +137,20 @@ TransactionSchema.index({ network: 1, status: 1, createdAt: -1 })
 TransactionSchema.index({ status: 1, createdAt: -1 })
 TransactionSchema.index({ blockNumber: 1 })
 TransactionSchema.index({ price: 1 })
+TransactionSchema.index({ idempotencyKey: 1 }, { sparse: true })
+TransactionSchema.index({ externalId: 1 }, { sparse: true })
+
+TransactionSchema.pre('validate', function(next) {
+  if (!this.statusHistory || this.statusHistory.length === 0) {
+    this.statusHistory = [{
+      status: this.status,
+      timestamp: this.createdAt || new Date(),
+      metadata: this.metadata
+    }]
+  }
+
+  next()
+})
 
 // Enable virtuals in JSON/Object output
 TransactionSchema.set('toJSON', { virtuals: true })
