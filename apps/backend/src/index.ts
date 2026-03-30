@@ -21,6 +21,7 @@ import favoriteRoutes from '@/routes/favorites'
 import apiKeyRoutes from '@/routes/apiKeys'
 import jobRoutes from '@/routes/jobs'
 import transactionRoutes from '@/routes/transactions'
+import analyticsRoutes from '@/routes/analytics'
 import healthService from '@/services/healthService'
 import cacheService from '@/services/cacheService'
 import { jobQueueService } from '@/services/jobQueueService'
@@ -124,6 +125,7 @@ export function createApp() {
   app.use('/api/keys', apiKeyRoutes)
   app.use('/api/jobs', jobRoutes)
   app.use('/api/transactions', transactionRoutes)
+  app.use('/api/analytics', analyticsRoutes)
 
   // ── 404 & Global Error Handlers ──────────────────────────────────────────────
   app.use(notFound)
