@@ -139,6 +139,13 @@ TransactionSchema.index({ blockNumber: 1 })
 TransactionSchema.index({ price: 1 })
 TransactionSchema.index({ idempotencyKey: 1 }, { sparse: true })
 TransactionSchema.index({ externalId: 1 }, { sparse: true })
+TransactionSchema.index({
+  hash: 'text',
+  from: 'text',
+  to: 'text',
+  externalId: 'text',
+  failureReason: 'text',
+})
 
 TransactionSchema.pre('validate', function(next) {
   if (!this.statusHistory || this.statusHistory.length === 0) {

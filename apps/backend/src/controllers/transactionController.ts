@@ -72,25 +72,45 @@ export const transactionController = {
   },
 
   async listTransactions(req: Request, res: Response, next: NextFunction) {
-    try {
-      const result = await transactionService.listTransactions({
-        status: req.query.status as any,
-        type: req.query.type as any,
-        artwork: req.query.artwork as string | undefined,
-        from: req.query.from as string | undefined,
-        to: req.query.to as string | undefined,
-        network: req.query.network as any,
-        page: Number(req.query.page || 1),
-        limit: Number(req.query.limit || 20)
-      })
-
-      res.json({
-        success: true,
-        data: result.data,
-        pagination: result.pagination
-      })
-    } catch (error) {
-      next(error)
+  try {
+    const parseArray = (value: unknown) => {
+      if (!value) return undefined
+      return Array.isArray(value) ? value : [value]
     }
+
+    const parseNumber = (value: unknown) => {
+      if (value === undefined) return undefined
+      const num = Number(value)
+      return Number.isNaN(num) ? undefined : num
+    }
+
+    const result = await transactionService.listTransactions({
+      status: parseArray(req.query.status) as any,
+      type: parseArray(req.query.type) as any,
+      artwork: req.query.artwork as string | undefined,
+      from: req.query.from as string | undefined,
+      to: req.query.to as string | undefined,
+      network: req.query.network as any,
+
+      search: req.query.search as string | undefined,
+
+      minPrice: parseNumber(req.query.minPrice),
+      maxPrice: parseNumber(req.query.maxPrice),
+
+      startDate: req.query.startDate as string | undefined,
+      endDate: req.query.endDate as string | undefined,
+
+      page: parseNumber(req.query.page) || 1,
+      limit: parseNumber(req.query.limit) || 20,
+    })
+
+    res.json({
+      success: true,
+      data: result.data,
+      pagination: result.pagination,
+    })
+  } catch (error) {
+    next(error)
   }
+}
 }

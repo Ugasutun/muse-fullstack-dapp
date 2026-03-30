@@ -47,6 +47,11 @@ interface TransactionQuery {
   from?: string
   to?: string
   network?: ITransaction['network']
+   search?: string
+  minPrice?: number
+  maxPrice?: number
+  startDate?: string
+  endDate?: string
   page: number
   limit: number
 }
@@ -155,38 +160,86 @@ class TransactionService {
   }
 
   async listTransactions(query: TransactionQuery) {
-    const filters: Record<string, any> = {}
+  const filters: Record<string, any> = {}
 
-    if (query.status) filters.status = query.status
-    if (query.type) filters.type = query.type
-    if (query.artwork) filters.artwork = query.artwork
-    if (query.from) filters.from = query.from
-    if (query.to) filters.to = query.to
-    if (query.network) filters.network = query.network
+  if (query.status) {
+    filters.status = Array.isArray(query.status)
+      ? { $in: query.status }
+      : query.status
+  }
 
-    const skip = (query.page - 1) * query.limit
+  if (query.type) {
+    filters.type = Array.isArray(query.type)
+      ? { $in: query.type }
+      : query.type
+  }
 
-    const [data, total] = await Promise.all([
-      Transaction.find(filters)
-        .populate('artwork')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(query.limit),
-      Transaction.countDocuments(filters)
-    ])
+  if (query.artwork) filters.artwork = query.artwork
+  if (query.from) filters.from = query.from
+  if (query.to) filters.to = query.to
+  if (query.network) filters.network = query.network
 
-    return {
-      data,
-      pagination: {
-        page: query.page,
-        limit: query.limit,
-        total,
-        totalPages: Math.ceil(total / query.limit),
-        hasNextPage: skip + data.length < total,
-        hasPrevPage: query.page > 1
-      }
+  // full-text search across multiple fields (hash, from, to, externalId, failureReason)
+  if (query.search) {
+    filters.$text = { $search: query.search }
+  }
+
+  //  PRICE RANGE FILTER (price is string → convert safely) 
+  if (query.minPrice || query.maxPrice) {
+    filters.$expr = {
+      $and: [
+        query.minPrice
+          ? { $gte: [{ $toDouble: '$price' }, query.minPrice] }
+          : {},
+        query.maxPrice
+          ? { $lte: [{ $toDouble: '$price' }, query.maxPrice] }
+          : {},
+      ].filter(Boolean),
     }
   }
+
+  if (query.startDate || query.endDate) {
+    filters.createdAt = {}
+    if (query.startDate) {
+      filters.createdAt.$gte = new Date(query.startDate)
+    }
+    if (query.endDate) {
+      filters.createdAt.$lte = new Date(query.endDate)
+    }
+  }
+
+  const skip = (query.page - 1) * query.limit
+
+
+  const sort: Record<string, any> = query.search
+    ? { score: { $meta: 'textScore' }, createdAt: -1 }
+    : { createdAt: -1 }
+
+  const projection = query.search
+    ? { score: { $meta: 'textScore' } }
+    : {}
+
+  const [data, total] = await Promise.all([
+    Transaction.find(filters, projection)
+      .populate('artwork')
+      .sort(sort)
+      .skip(skip)
+      .limit(query.limit),
+    Transaction.countDocuments(filters),
+  ])
+
+  return {
+    data,
+    pagination: {
+      page: query.page,
+      limit: query.limit,
+      total,
+      totalPages: Math.ceil(total / query.limit),
+      hasNextPage: skip + data.length < total,
+      hasPrevPage: query.page > 1,
+    },
+  }
+}
 
   private async applyStatusUpdate(transaction: ITransaction, input: UpdateTransactionStatusInput): Promise<ITransaction> {
     const now = new Date()
