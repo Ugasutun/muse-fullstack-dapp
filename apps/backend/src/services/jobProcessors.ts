@@ -110,6 +110,74 @@ export async function processEmailNotification(job: Job): Promise<JobResult> {
   }
 }
 
+// Push Notification Job Processor
+export async function processPushNotification(job: Job): Promise<JobResult> {
+  const { to, title, message, data, userId } = job.data as JobData
+  
+  try {
+    logger.info(`Sending push notification to ${to}`, { title, message })
+    
+    // Simulate push notification send
+    await new Promise(resolve => setTimeout(resolve, 800))
+    
+    const pushResult = {
+      id: `push_${Date.now()}`,
+      to,
+      title,
+      message,
+      sentAt: new Date(),
+      status: 'sent'
+    }
+    
+    logger.info(`Push notification sent successfully for job ${job.id}`)
+    
+    return {
+      success: true,
+      data: pushResult
+    }
+  } catch (error) {
+    logger.error(`Push notification failed for job ${job.id}:`, error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }
+  }
+}
+
+// SMS Notification Job Processor
+export async function processSMSNotification(job: Job): Promise<JobResult> {
+  const { to, message, provider, data, userId } = job.data as JobData
+  
+  try {
+    logger.info(`Sending SMS notification to ${to}`, { provider, message })
+    
+    // Simulate SMS sending (replace with actual SMS provider)
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    const smsResult = {
+      id: `sms_${Date.now()}`,
+      to,
+      message,
+      provider: provider || 'simulated',
+      sentAt: new Date(),
+      status: 'sent'
+    }
+    
+    logger.info(`SMS sent successfully for job ${job.id}`)
+    
+    return {
+      success: true,
+      data: smsResult
+    }
+  } catch (error) {
+    logger.error(`SMS sending failed for job ${job.id}:`, error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }
+  }
+}
+
 // Transaction Processing Job Processor
 export async function processTransaction(job: Job): Promise<JobResult> {
   const { transactionId, from, to, amount, type, userId } = job.data as JobData
@@ -240,6 +308,8 @@ export function registerAllJobProcessors(jobQueueService: any): void {
   jobQueueService.processJob(JobType.AI_GENERATION, processAIGeneration)
   jobQueueService.processJob(JobType.IMAGE_PROCESSING, processImageProcessing)
   jobQueueService.processJob(JobType.EMAIL_NOTIFICATION, processEmailNotification)
+  jobQueueService.processJob(JobType.PUSH_NOTIFICATION, processPushNotification)
+  jobQueueService.processJob(JobType.SMS_NOTIFICATION, processSMSNotification)
   jobQueueService.processJob(JobType.TRANSACTION_PROCESSING, processTransaction)
   jobQueueService.processJob(JobType.CACHE_WARMING, processCacheWarming)
   jobQueueService.processJob(JobType.CLEANUP, processCleanup)

@@ -12,7 +12,7 @@ registerAllJobProcessors(jobQueueService)
 
 // Validation schemas
 const createJobSchema = z.object({
-  type: z.enum(['ai-generation', 'image-processing', 'email-notification', 'transaction-processing', 'cache-warming', 'cleanup']),
+  type: z.enum(['ai-generation', 'image-processing', 'email-notification', 'push-notification', 'sms-notification', 'transaction-processing', 'cache-warming', 'cleanup']),
   data: z.object({}).passthrough(),
   options: z.object({
     delay: z.number().min(0).optional(),
@@ -244,6 +244,24 @@ router.post('/sample', async (req: express.Request, res: express.Response) => {
           to: 'user@example.com',
           subject: 'Welcome to Muse AI Marketplace',
           template: 'welcome',
+          userId: 'sample-user'
+        }
+      },
+      {
+        type: JobType.PUSH_NOTIFICATION,
+        data: {
+          to: 'user@example.com',
+          title: 'New Artwork Alert',
+          message: 'A new artwork matching your interests is now available.',
+          userId: 'sample-user'
+        }
+      },
+      {
+        type: JobType.SMS_NOTIFICATION,
+        data: {
+          to: '+15555550123',
+          message: 'Your payment has been confirmed. Thank you for using Muse.',
+          provider: 'simulated-sms',
           userId: 'sample-user'
         }
       },
