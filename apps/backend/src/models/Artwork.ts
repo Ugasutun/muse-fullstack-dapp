@@ -26,6 +26,25 @@ export interface IArtwork extends Document {
     backgroundColor?: string
   }
   image?: string
+  // File upload related fields
+  fileUpload?: {
+    key: string
+    bucket: string
+    contentType: string
+    size: number
+    etag?: string
+    originalName: string
+    uploadDate: Date
+  }
+  // Multiple image formats support
+  images?: {
+    original?: string
+    thumbnail?: string
+    medium?: string
+    large?: string
+    webp?: string
+    avif?: string
+  }
   blockchainData?: {
     network?: string
     contractId?: string
@@ -62,6 +81,25 @@ const ArtworkSchema: Schema = new Schema(
       backgroundColor: { type: String },
     },
     image: { type: String },
+    // File upload metadata
+    fileUpload: {
+      key: { type: String },
+      bucket: { type: String },
+      contentType: { type: String },
+      size: { type: Number },
+      etag: { type: String },
+      originalName: { type: String },
+      uploadDate: { type: Date, default: Date.now },
+    },
+    // Multiple image formats
+    images: {
+      original: { type: String },
+      thumbnail: { type: String },
+      medium: { type: String },
+      large: { type: String },
+      webp: { type: String },
+      avif: { type: String },
+    },
     blockchainData: {
       network: { type: String },
       contractId: { type: String },

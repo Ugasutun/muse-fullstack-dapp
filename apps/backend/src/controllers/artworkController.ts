@@ -6,6 +6,7 @@ import {
   createDatabaseError,
 } from '@/middleware/errorHandler'
 import { createLogger } from '@/utils/logger'
+import { fileUploadService } from '@/services/fileUploadService'
 
 const logger = createLogger('ArtworkController')
 
@@ -68,7 +69,18 @@ export const getArtwork = async (req: Request, res: Response, next: NextFunction
 export const createArtwork = async (req: Request, res: Response, next: NextFunction) => {
   const log = logger.child({ requestId: req.requestId })
   try {
-    const { title, description, imageUrl, price, currency, category, prompt, aiModel } = req.body
+    const { 
+      title, 
+      description, 
+      imageUrl, 
+      price, 
+      currency, 
+      category, 
+      prompt, 
+      aiModel,
+      fileUpload,
+      images 
+    } = req.body
 
     const validationErrors: string[] = []
     if (!title?.trim()) validationErrors.push('title is required')
@@ -98,6 +110,8 @@ export const createArtwork = async (req: Request, res: Response, next: NextFunct
       creator,
       owner: creator,
       isListed: false,
+      fileUpload,
+      images,
     })
 
     log.info('Artwork created', { artworkId: artwork._id, creator })
@@ -155,9 +169,54 @@ export const deleteArtwork = async (req: Request, res: Response, next: NextFunct
       return next(createValidationError('Only the creator can delete an artwork'))
     }
 
+    // Delete associated files from S3 if they exist
+    if (artwork.fileUpload?.key) {
+      try {
+        await fileUploadService.deleteFile(artwork.fileUpload.key)
+        log.info('Associated file deleted from S3', { key: artwork.fileUpload.key })
+      } catch (error) {
+        log.warn('Failed to delete associated file from S3', { 
+          key: artwork.fileUpload.key, 
+          error 
+        })
+        // Continue with artwork deletion even if file deletion fails
+      }
+    }
+
+    // Delete multiple image formats if they exist
+    if (artwork.images) {
+      const imageKeys = Object.values(artwork.images)
+        .filter(url => url && url.includes('/')) // Filter out empty/null values
+        .map(url => {
+          try {
+            const urlObj = new URL(url)
+            return urlObj.pathname.substring(1) // Remove leading slash
+          } catch {
+            return null
+          }
+        })
+        .filter(key => key) as string[]
+
+      for (const key of imageKeys) {
+        try {
+          await fileUploadService.deleteFile(key)
+          log.info('Associated image format deleted from S3', { key })
+        } catch (error) {
+          log.warn('Failed to delete associated image format from S3', { 
+            key, 
+            error 
+          })
+        }
+      }
+    }
+
     await Artwork.findByIdAndDelete(id)
     log.info('Artwork deleted', { artworkId: id })
-    res.json({ success: true, data: null })
+    res.json({ 
+      success: true, 
+      data: null,
+      message: 'Artwork and associated files deleted successfully'
+    })
   } catch (error) {
     log.error('Failed to delete artwork', { artworkId: req.params.id, error })
     next(createDatabaseError('Failed to delete artwork'))
