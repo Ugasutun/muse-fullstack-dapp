@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ErrorDisplay } from '@/components/ErrorDisplay'
 import { Button } from '@/components/ui/Button'
 import { MintStepper } from '@/components/MintStepper'
 import { useErrorContext } from '@/contexts/ErrorContext'
+import { useWebSocket, useMintingUpdates, useWebSocketAuth } from '@/contexts/WebSocketContext'
+import { ArtworkTransactionUpdates } from '@/components/Notifications/TransactionStatusIndicator'
 import { aiService } from '@/services/aiService'
 import { ErrorHandler, type AppError } from '@/utils/errorHandler'
 import { ComponentErrorBoundary, AsyncErrorBoundary } from '@/components/error'
@@ -15,6 +17,9 @@ interface GenerateState {
 
 export function MintPage() {
     const { showError } = useErrorContext()
+    const { isConnected } = useWebSocket()
+    const { mintingUpdates } = useMintingUpdates()
+    const { authenticate } = useWebSocketAuth()
     const [prompt, setPrompt] = useState('')
     const [style, setStyle] = useState('')
     const [error, setError] = useState<AppError | null>(null)
@@ -23,6 +28,19 @@ export function MintPage() {
         generationId: null,
         status: 'idle',
     })
+
+    useEffect(() => {
+        // Authenticate WebSocket connection when user connects
+        // This would typically get user data from auth context
+        const userData = {
+            // userId: user?.id, // Get from auth context
+            // address: user?.walletAddress // Get from auth context
+        }
+        
+        if (isConnected && (userData.userId || userData.address)) {
+            authenticate(userData)
+        }
+    }, [isConnected, authenticate])
 
     const handleGenerate = async () => {
         if (!prompt.trim()) {
@@ -153,6 +171,33 @@ export function MintPage() {
                     <p className="text-sm text-gray-600 mb-4">
                         Complete metadata, upload media, and sign transaction to mint your NFT.
                     </p>
+                    
+                    {/* Real-time minting updates */}
+                    {mintingUpdates.length > 0 && (
+                        <div className="mb-4">
+                            <h3 className="text-sm font-medium text-gray-700 mb-2">Minting Status Updates</h3>
+                            <div className="space-y-2">
+                                {mintingUpdates.slice(0, 3).map((update, index) => (
+                                    <div key={index} className="text-xs p-2 bg-blue-50 border border-blue-200 rounded">
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-medium text-blue-800">
+                                                {update.data.status}
+                                            </span>
+                                            <span className="text-blue-600">
+                                                {new Date(update.timestamp).toLocaleTimeString()}
+                                            </span>
+                                        </div>
+                                        {update.data.message && (
+                                            <div className="text-blue-700 mt-1">
+                                                {update.data.message}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    
                     <ComponentErrorBoundary 
                         name="MintStepper" 
                         showRetry={true}
