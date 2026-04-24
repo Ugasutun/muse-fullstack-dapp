@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import { transactionService } from '@/services/transactionService'
+import { transactionMonitor } from '../services/transactionMonitor'
 
 export const transactionController = {
   async createTransaction(req: Request, res: Response, next: NextFunction) {
@@ -9,6 +10,11 @@ export const transactionController = {
       const result = autoProcess
         ? await transactionService.processTransaction(transaction._id.toString())
         : transaction
+
+      // Add to real-time monitor
+      if (transaction.hash) {
+        transactionMonitor.addTransaction(transaction.hash, transaction.status as any);
+      }
 
       res.status(201).json({
         success: true,

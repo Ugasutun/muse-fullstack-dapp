@@ -22,6 +22,14 @@
     "validate-env": "node scripts/validate-env.js",
     "validate-env:backend": "node -e \"require('dotenv').config({path: 'apps/backend/.env'}); console.log('Backend env loaded')\""
   },
+  "dependencies": {
+    "soroban-client": "^1.0.0",
+    "socket.io": "^4.7.2",
+    "socket.io-client": "^4.7.2",
+    "localforage": "^1.10.0",
+    "lucide-react": "^0.284.0",
+    "dotenv": "^16.3.1"
+  },
   "devDependencies": {
     "concurrently": "^8.2.2",
     "@typescript-eslint/eslint-plugin": "^6.0.0",

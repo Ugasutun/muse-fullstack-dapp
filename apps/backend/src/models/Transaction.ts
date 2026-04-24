@@ -9,7 +9,7 @@ export interface ITransaction extends Document {
   price: string
   currency: string
   network: 'testnet' | 'mainnet'
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+  status: 'pending' | 'confirming' | 'processing' | 'completed' | 'failed' | 'cancelled'
   idempotencyKey?: string
   externalId?: string
   blockNumber?: number
@@ -20,7 +20,7 @@ export interface ITransaction extends Document {
   processingStartedAt?: Date
   metadata?: Record<string, any>
   statusHistory: Array<{
-    status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+    status: 'pending' | 'confirming' | 'processing' | 'completed' | 'failed' | 'cancelled'
     timestamp: Date
     reason?: string
     metadata?: Record<string, any>
@@ -82,7 +82,7 @@ const TransactionSchema = new Schema<ITransaction>({
   status: {
     type: String,
     required: true,
-    enum: ['pending', 'processing', 'completed', 'failed', 'cancelled'],
+    enum: ['pending', 'confirming', 'processing', 'completed', 'failed', 'cancelled'],
     default: 'pending',
     index: true
   },
@@ -111,7 +111,7 @@ const TransactionSchema = new Schema<ITransaction>({
   statusHistory: [{
     status: {
       type: String,
-      enum: ['pending', 'processing', 'completed', 'failed', 'cancelled'],
+      enum: ['pending', 'confirming', 'processing', 'completed', 'failed', 'cancelled'],
       required: true
     },
     timestamp: {
