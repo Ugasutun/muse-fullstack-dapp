@@ -32,6 +32,21 @@ FavoriteSchema.index({ user: 1, createdAt: -1 })
 FavoriteSchema.index({ artwork: 1, createdAt: -1 })
 FavoriteSchema.index({ createdAt: -1 })
 
+// Virtual relationships for reverse lookups
+FavoriteSchema.virtual('artworkInfo', {
+  ref: 'Artwork',
+  localField: 'artwork',
+  foreignField: '_id',
+  justOne: true
+})
+
+FavoriteSchema.virtual('userInfo', {
+  ref: 'User',
+  localField: 'user',
+  foreignField: 'address',
+  justOne: true
+})
+
 // Enable virtuals in JSON/Object output
 FavoriteSchema.set('toJSON', { virtuals: true })
 FavoriteSchema.set('toObject', { virtuals: true })

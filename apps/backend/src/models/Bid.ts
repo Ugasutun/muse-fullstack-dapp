@@ -95,6 +95,21 @@ BidSchema.pre('save', function(this: IBid, next: any) {
   next()
 })
 
+// Virtual relationships for reverse lookups
+BidSchema.virtual('artworkInfo', {
+  ref: 'Artwork',
+  localField: 'artwork',
+  foreignField: '_id',
+  justOne: true
+})
+
+BidSchema.virtual('bidderInfo', {
+  ref: 'User',
+  localField: 'bidder',
+  foreignField: 'address',
+  justOne: true
+})
+
 // Enable virtuals in JSON/Object output
 BidSchema.set('toJSON', { virtuals: true })
 BidSchema.set('toObject', { virtuals: true })

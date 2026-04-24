@@ -3,6 +3,7 @@ import { Artwork } from '@/models/Artwork'
 import { ITransaction, Transaction } from '@/models/Transaction'
 import { createError, createNotFoundError, createValidationError } from '@/middleware/errorHandler'
 import cacheService from '@/services/cacheService'
+import { websocketService } from '@/services/websocketService'
 
 type TransactionStatus = ITransaction['status']
 
@@ -81,6 +82,15 @@ class TransactionService {
         metadata: input.metadata
       }]
     })
+
+    // Broadcast real-time update for new transaction
+    try {
+      await transaction.populate('artwork')
+      websocketService.broadcastTransactionUpdate(transaction)
+    } catch (error) {
+      // Log error but don't fail the transaction creation
+      console.error('Failed to broadcast transaction update:', error)
+    }
 
     return this.cacheTransaction(transaction)
   }
@@ -223,6 +233,16 @@ class TransactionService {
     })
 
     await transaction.save()
+    
+    // Broadcast real-time update for status change
+    try {
+      await transaction.populate('artwork')
+      websocketService.broadcastTransactionUpdate(transaction)
+    } catch (error) {
+      // Log error but don't fail the status update
+      console.error('Failed to broadcast transaction status update:', error)
+    }
+    
     return this.cacheTransaction(transaction)
   }
 

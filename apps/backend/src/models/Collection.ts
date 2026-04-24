@@ -133,6 +133,21 @@ CollectionSchema.index({ 'stats.totalArtworks': -1 })
 CollectionSchema.index({ tags: 1 })
 CollectionSchema.index({ createdAt: -1 })
 
+// Virtual relationships for reverse lookups
+CollectionSchema.virtual('creatorInfo', {
+  ref: 'User',
+  localField: 'creator',
+  foreignField: 'address',
+  justOne: true
+})
+
+CollectionSchema.virtual('artworkDetails', {
+  ref: 'Artwork',
+  localField: 'artworks',
+  foreignField: '_id',
+  justOne: false
+})
+
 // Enable virtuals in JSON/Object output
 CollectionSchema.set('toJSON', { virtuals: true })
 CollectionSchema.set('toObject', { virtuals: true })

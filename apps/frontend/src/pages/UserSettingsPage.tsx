@@ -27,6 +27,7 @@ import { ErrorDisplay } from '@/components/ErrorDisplay'
 import { useErrorContext } from '@/contexts/ErrorContext'
 import { ErrorHandler, type AppError } from '@/utils/errorHandler'
 import { cn } from '@/utils/cn'
+import { ComponentErrorBoundary } from '@/components/error'
 
 const defaultSettings: UserSettings = {
   profile: {
@@ -168,24 +169,29 @@ export function UserSettingsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-secondary-900 mb-2">Settings</h1>
-        <p className="text-secondary-600">Manage your account settings and preferences</p>
-      </div>
+    <ComponentErrorBoundary 
+      name="UserSettingsPage" 
+      showRetry={true}
+      customMessage="Settings page encountered an error. Your changes may not have been saved."
+    >
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-secondary-900 mb-2">Settings</h1>
+          <p className="text-secondary-600">Manage your account settings and preferences</p>
+        </div>
 
-      {saveError && (
-        <ErrorDisplay
-          error={saveError}
-          onRetry={handleSave}
-          onDismiss={() => setSaveError(null)}
-          showRetry
-          showDismiss
-          className="mb-4"
-        />
-      )}
+        {saveError && (
+          <ErrorDisplay
+            error={saveError}
+            onRetry={handleSave}
+            onDismiss={() => setSaveError(null)}
+            showRetry
+            showDismiss
+            className="mb-4"
+          />
+        )}
 
-      <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col lg:flex-row gap-8">
         {/* Sidebar Navigation */}
         <div className="lg:w-64">
           <nav className="space-y-1">
@@ -715,7 +721,8 @@ export function UserSettingsPage() {
             </div>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </ComponentErrorBoundary>
   )
 }

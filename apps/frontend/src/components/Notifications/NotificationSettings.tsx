@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Bell, Mail, Smartphone, Volume2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -67,6 +67,31 @@ export function NotificationSettings() {
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [pushNotifications, setPushNotifications] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(true)
+  const [statusMessage, setStatusMessage] = useState<string>('')
+
+  useEffect(() => {
+    try {
+      const savedPreferences = localStorage.getItem('muse_notification_preferences')
+      const savedEmail = localStorage.getItem('muse_email_notifications')
+      const savedPush = localStorage.getItem('muse_push_notifications')
+      const savedSound = localStorage.getItem('muse_sound_enabled')
+
+      if (savedPreferences) {
+        setPreferences(JSON.parse(savedPreferences))
+      }
+      if (savedEmail !== null) {
+        setEmailNotifications(JSON.parse(savedEmail))
+      }
+      if (savedPush !== null) {
+        setPushNotifications(JSON.parse(savedPush))
+      }
+      if (savedSound !== null) {
+        setSoundEnabled(JSON.parse(savedSound))
+      }
+    } catch (error) {
+      console.error('Failed to load notification settings from storage:', error)
+    }
+  }, [])
 
   const togglePreference = (id: string) => {
     setPreferences(prev => prev.map(pref => 
@@ -92,14 +117,15 @@ export function NotificationSettings() {
   }
 
   const saveSettings = () => {
-    // Save to localStorage for demo
-    localStorage.setItem('notification_preferences', JSON.stringify(preferences))
-    localStorage.setItem('email_notifications', JSON.stringify(emailNotifications))
-    localStorage.setItem('push_notifications', JSON.stringify(pushNotifications))
-    localStorage.setItem('sound_enabled', JSON.stringify(soundEnabled))
-    
-    // Show success notification
-    alert('Notification settings saved successfully!')
+    localStorage.setItem('muse_notification_preferences', JSON.stringify(preferences))
+    localStorage.setItem('muse_email_notifications', JSON.stringify(emailNotifications))
+    localStorage.setItem('muse_push_notifications', JSON.stringify(pushNotifications))
+    localStorage.setItem('muse_sound_enabled', JSON.stringify(soundEnabled))
+    setStatusMessage('Notification settings saved successfully.')
+
+    window.setTimeout(() => {
+      setStatusMessage('')
+    }, 3000)
   }
 
   return (
@@ -254,6 +280,11 @@ export function NotificationSettings() {
         </CardContent>
       </Card>
 
+      {statusMessage && (
+        <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-700">
+          {statusMessage}
+        </div>
+      )}
       {/* Save Button */}
       <div className="flex justify-end">
         <Button variant="primary" onClick={saveSettings}>

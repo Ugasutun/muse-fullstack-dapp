@@ -40,6 +40,21 @@ FollowSchema.index({ following: 1, status: 1, createdAt: -1 })
 FollowSchema.index({ follower: 1, status: 1, createdAt: -1 })
 FollowSchema.index({ status: 1, createdAt: -1 })
 
+// Virtual relationships for reverse lookups
+FollowSchema.virtual('followerInfo', {
+  ref: 'User',
+  localField: 'follower',
+  foreignField: 'address',
+  justOne: true
+})
+
+FollowSchema.virtual('followingInfo', {
+  ref: 'User',
+  localField: 'following',
+  foreignField: 'address',
+  justOne: true
+})
+
 // Enable virtuals in JSON/Object output
 FollowSchema.set('toJSON', { virtuals: true })
 FollowSchema.set('toObject', { virtuals: true })

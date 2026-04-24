@@ -152,6 +152,28 @@ TransactionSchema.pre('validate', function(next) {
   next()
 })
 
+// Virtual relationships for reverse lookups
+TransactionSchema.virtual('artworkInfo', {
+  ref: 'Artwork',
+  localField: 'artwork',
+  foreignField: '_id',
+  justOne: true
+})
+
+TransactionSchema.virtual('fromUserInfo', {
+  ref: 'User',
+  localField: 'from',
+  foreignField: 'address',
+  justOne: true
+})
+
+TransactionSchema.virtual('toUserInfo', {
+  ref: 'User',
+  localField: 'to',
+  foreignField: 'address',
+  justOne: true
+})
+
 // Enable virtuals in JSON/Object output
 TransactionSchema.set('toJSON', { virtuals: true })
 TransactionSchema.set('toObject', { virtuals: true })

@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import express from 'express'
 import mongoose from 'mongoose'
 
+import { database } from '@/config/database'
 import { securityMiddleware } from '@/middleware/security'
 import { requestContext } from '@/middleware/requestContext'
 import { requestLogger } from '@/middleware/requestLogger'
@@ -21,12 +22,16 @@ import imageOptimizerRoutes from '@/routes/imageOptimizer'
 import favoriteRoutes from '@/routes/favorites'
 import apiKeyRoutes from '@/routes/apiKeys'
 import jobRoutes from '@/routes/jobs'
+import notificationRoutes from '@/routes/notifications'
 import transactionRoutes from '@/routes/transactions'
 import analyticsRoutes from '@/routes/analytics'
+import fileUploadRoutes from '@/routes/fileUpload'
+import databaseMetricsRoutes from '@/routes/databaseMetrics'
 import healthService from '@/services/healthService'
 import cacheService from '@/services/cacheService'
 import { jobQueueService } from '@/services/jobQueueService'
 import { createLogger } from '@/utils/logger'
+import { websocketService } from '@/services/websocketService'
 import logsRoute from "./routes/logs";
 
 dotenv.config()
@@ -128,8 +133,11 @@ export function createApp() {
   app.use('/api/favorites', favoriteRoutes)
   app.use('/api/keys', apiKeyRoutes)
   app.use('/api/jobs', jobRoutes)
+  app.use('/api/notifications', notificationRoutes)
   app.use('/api/transactions', transactionRoutes)
   app.use('/api/analytics', analyticsRoutes)
+  app.use('/api/upload', fileUploadRoutes)
+  app.use('/api/database', databaseMetricsRoutes)
 
   // ── 404 & Global Error Handlers ──────────────────────────────────────────────
   app.use(notFound)
@@ -141,8 +149,8 @@ export function createApp() {
 export const app = createApp()
 
 export async function startServer() {
-  await mongoose.connect(MONGODB_URI)
-  logger.info('Connected to MongoDB')
+  await database.connect()
+  logger.info('Connected to MongoDB with connection pooling')
 
   if (process.env.NODE_ENV !== 'test') {
     try {
@@ -153,10 +161,20 @@ export async function startServer() {
     }
   }
 
-  return app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`)
     logger.info(`Cache stats: ${JSON.stringify(cacheService.getCacheStats())}`)
   })
+
+  // Initialize WebSocket service
+  try {
+    websocketService.initialize(server)
+    logger.info('WebSocket service initialized')
+  } catch (error) {
+    logger.error('Failed to initialize WebSocket service:', error)
+  }
+
+  return server
 }
 
 if (process.env.NODE_ENV !== 'test') {
@@ -176,15 +194,21 @@ async function shutdown(signal: string) {
   }
 
   try {
+    websocketService.shutdown()
+  } catch (error) {
+    logger.warn('WebSocket service shutdown encountered an error:', error)
+  }
+
+  try {
     await cacheService.disconnect()
   } catch (error) {
     logger.warn('Cache disconnect encountered an error:', error)
   }
 
   try {
-    await mongoose.connection.close()
+    await database.disconnect()
   } catch (error) {
-    logger.warn('MongoDB disconnect encountered an error:', error)
+    logger.warn('Database disconnect encountered an error:', error)
   }
 }
 

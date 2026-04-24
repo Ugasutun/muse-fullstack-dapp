@@ -108,6 +108,21 @@ NotificationSchema.index({ category: 1, createdAt: -1 })
 NotificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }) // Auto-expire notifications
 NotificationSchema.index({ createdAt: -1 })
 
+// Virtual relationships for reverse lookups
+NotificationSchema.virtual('recipientInfo', {
+  ref: 'User',
+  localField: 'recipient',
+  foreignField: 'address',
+  justOne: true
+})
+
+NotificationSchema.virtual('senderInfo', {
+  ref: 'User',
+  localField: 'sender',
+  foreignField: 'address',
+  justOne: true
+})
+
 // Enable virtuals in JSON/Object output
 NotificationSchema.set('toJSON', { virtuals: true })
 NotificationSchema.set('toObject', { virtuals: true })

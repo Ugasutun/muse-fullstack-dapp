@@ -120,6 +120,49 @@ CommentSchema.virtual('likeCount').get(function(this: IComment) {
   return this.likes.length
 })
 
+// Virtual relationships for reverse lookups
+CommentSchema.virtual('artworkInfo', {
+  ref: 'Artwork',
+  localField: 'artwork',
+  foreignField: '_id',
+  justOne: true
+})
+
+CommentSchema.virtual('authorInfo', {
+  ref: 'User',
+  localField: 'author',
+  foreignField: 'address',
+  justOne: true
+})
+
+CommentSchema.virtual('parentCommentInfo', {
+  ref: 'Comment',
+  localField: 'parentComment',
+  foreignField: '_id',
+  justOne: true
+})
+
+CommentSchema.virtual('replyDetails', {
+  ref: 'Comment',
+  localField: 'replies',
+  foreignField: '_id',
+  justOne: false
+})
+
+CommentSchema.virtual('likerInfos', {
+  ref: 'User',
+  localField: 'likes',
+  foreignField: 'address',
+  justOne: false
+})
+
+CommentSchema.virtual('reporterInfos', {
+  ref: 'User',
+  localField: 'reportedBy',
+  foreignField: 'address',
+  justOne: false
+})
+
 // Ensure virtuals are included in JSON
 CommentSchema.set('toJSON', { virtuals: true })
 CommentSchema.set('toObject', { virtuals: true })

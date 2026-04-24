@@ -165,6 +165,42 @@ AuctionSchema.virtual('bidCount').get(function(this: IAuction) {
   return this.bids.length
 })
 
+// Virtual relationships for reverse lookups
+AuctionSchema.virtual('artworkInfo', {
+  ref: 'Artwork',
+  localField: 'artwork',
+  foreignField: '_id',
+  justOne: true
+})
+
+AuctionSchema.virtual('sellerInfo', {
+  ref: 'User',
+  localField: 'seller',
+  foreignField: 'address',
+  justOne: true
+})
+
+AuctionSchema.virtual('currentBidderInfo', {
+  ref: 'User',
+  localField: 'currentBidder',
+  foreignField: 'address',
+  justOne: true
+})
+
+AuctionSchema.virtual('winnerInfo', {
+  ref: 'User',
+  localField: 'winner',
+  foreignField: 'address',
+  justOne: true
+})
+
+AuctionSchema.virtual('bidDetails', {
+  ref: 'Bid',
+  localField: 'bids',
+  foreignField: '_id',
+  justOne: false
+})
+
 // Ensure virtuals are included in JSON
 AuctionSchema.set('toJSON', { virtuals: true })
 AuctionSchema.set('toObject', { virtuals: true })

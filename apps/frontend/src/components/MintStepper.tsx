@@ -7,6 +7,7 @@ import { StepIndicator } from '@/components/mint/StepIndicator'
 import { MetadataForm, Metadata } from '@/components/mint/MetadataForm'
 import { FileUpload, FileData } from '@/components/mint/FileUpload'
 import { TransactionSign } from '@/components/mint/TransactionSign'
+import { ComponentErrorBoundary } from '@/components/error'
 
 interface StepperProps {
   onComplete?: (data: { metadata: Metadata; fileData: FileData }) => void
@@ -171,27 +172,46 @@ export function MintStepper({ onComplete }: StepperProps) {
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        return <MetadataForm metadata={metadata} onChange={setMetadata} />
+        return (
+          <ComponentErrorBoundary
+            name="MetadataForm"
+            showRetry={true}
+            customMessage="Metadata form encountered an error. Your information may not be saved."
+          >
+            <MetadataForm metadata={metadata} onChange={setMetadata} />
+          </ComponentErrorBoundary>
+        )
       case 2:
         return (
-          <FileUpload
-            fileData={fileData}
-            onChange={handleFileChange}
-            onClear={() => setFileData({ file: null, preview: null, type: '' })}
-          />
+          <ComponentErrorBoundary
+            name="FileUpload"
+            showRetry={true}
+            customMessage="File upload encountered an error. Please try selecting your file again."
+          >
+            <FileUpload
+              fileData={fileData}
+              onChange={handleFileChange}
+              allowedTypes={ALLOWED_TYPES}
+              maxSize={MAX_SIZE}
+            />
+          </ComponentErrorBoundary>
         )
       case 3:
         return (
-          <TransactionSign
-            metadata={metadata}
-            walletConnected={walletConnected}
-            isProcessing={isProcessing}
-            transactionStatus={transactionStatus}
-            transactionHash={transactionHash}
-            error={error}
-            onConnect={handleConnectWallet}
-            onSign={handleSignTransaction}
-          />
+          <ComponentErrorBoundary
+            name="TransactionSign"
+            showRetry={true}
+            customMessage="Transaction signing encountered an error. Please check your wallet connection and try again."
+          >
+            <TransactionSign
+              metadata={metadata}
+              walletConnected={walletConnected}
+              transactionHash={transactionHash}
+              transactionStatus={transactionStatus}
+              onConnect={handleConnectWallet}
+              onSign={handleSignTransaction}
+            />
+          </ComponentErrorBoundary>
         )
       default:
         return null

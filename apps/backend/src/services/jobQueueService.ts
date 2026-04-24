@@ -18,6 +18,8 @@ export enum JobType {
   AI_GENERATION = 'ai-generation',
   IMAGE_PROCESSING = 'image-processing',
   EMAIL_NOTIFICATION = 'email-notification',
+  PUSH_NOTIFICATION = 'push-notification',
+  SMS_NOTIFICATION = 'sms-notification',
   TRANSACTION_PROCESSING = 'transaction-processing',
   CACHE_WARMING = 'cache-warming',
   CLEANUP = 'cleanup'
@@ -48,6 +50,8 @@ class JobQueueService {
       this.queues.set(JobType.AI_GENERATION, this.createQueue(JobType.AI_GENERATION))
       this.queues.set(JobType.IMAGE_PROCESSING, this.createQueue(JobType.IMAGE_PROCESSING))
       this.queues.set(JobType.EMAIL_NOTIFICATION, this.createQueue(JobType.EMAIL_NOTIFICATION))
+      this.queues.set(JobType.PUSH_NOTIFICATION, this.createQueue(JobType.PUSH_NOTIFICATION))
+      this.queues.set(JobType.SMS_NOTIFICATION, this.createQueue(JobType.SMS_NOTIFICATION))
       this.queues.set(JobType.TRANSACTION_PROCESSING, this.createQueue(JobType.TRANSACTION_PROCESSING))
       this.queues.set(JobType.CACHE_WARMING, this.createQueue(JobType.CACHE_WARMING))
       this.queues.set(JobType.CLEANUP, this.createQueue(JobType.CLEANUP))
@@ -122,7 +126,9 @@ class JobQueueService {
   private getJobPriority(type: JobType): number {
     const priorities = {
       [JobType.TRANSACTION_PROCESSING]: 10, // Highest priority
+      [JobType.SMS_NOTIFICATION]: 9,
       [JobType.EMAIL_NOTIFICATION]: 8,
+      [JobType.PUSH_NOTIFICATION]: 7,
       [JobType.AI_GENERATION]: 5,
       [JobType.IMAGE_PROCESSING]: 5,
       [JobType.CACHE_WARMING]: 3,

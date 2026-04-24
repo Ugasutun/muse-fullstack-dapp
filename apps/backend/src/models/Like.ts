@@ -32,6 +32,21 @@ LikeSchema.index({ user: 1, createdAt: -1 })
 LikeSchema.index({ artwork: 1, createdAt: -1 })
 LikeSchema.index({ createdAt: -1 })
 
+// Virtual relationships for reverse lookups
+LikeSchema.virtual('artworkInfo', {
+  ref: 'Artwork',
+  localField: 'artwork',
+  foreignField: '_id',
+  justOne: true
+})
+
+LikeSchema.virtual('userInfo', {
+  ref: 'User',
+  localField: 'user',
+  foreignField: 'address',
+  justOne: true
+})
+
 // Enable virtuals in JSON/Object output
 LikeSchema.set('toJSON', { virtuals: true })
 LikeSchema.set('toObject', { virtuals: true })

@@ -6,6 +6,15 @@ const logger = createLogger('Database')
 export class DatabaseConnection {
   private static instance: DatabaseConnection
   private isConnected: boolean = false
+  private connectionMetrics = {
+    totalConnections: 0,
+    activeConnections: 0,
+    failedConnections: 0,
+    connectionErrors: [] as Array<{ timestamp: Date; error: string }>,
+    lastHealthCheck: null as Date | null,
+    averageResponseTime: 0,
+    responseTimeHistory: [] as number[]
+  }
 
   private constructor() {}
 
@@ -26,31 +35,48 @@ export class DatabaseConnection {
       const mongoUri = process.env.MONGODB_URI || process.env.DATABASE_URL || 'mongodb://localhost:27017/muse'
       
       await mongoose.connect(mongoUri, {
-        // Connection pooling configuration
-        maxPoolSize: 50, // Maximum number of sockets in the connection pool
-        minPoolSize: 5,  // Minimum number of sockets in the connection pool
-        maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-        serverSelectionTimeoutMS: 5000, // How long to try selecting a server before giving up
-        socketTimeoutMS: 45000, // How long a send or receive on a socket can take before timing out
-        bufferCommands: false, // Disable mongoose buffering
+        // Optimized connection pooling configuration
+        maxPoolSize: Math.max(10, Number(process.env.DB_MAX_POOL_SIZE) || 20), // Dynamic pool size based on env
+        minPoolSize: Math.max(2, Number(process.env.DB_MIN_POOL_SIZE) || 5),  // Minimum connections to maintain
+        maxIdleTimeMS: Number(process.env.DB_MAX_IDLE_TIME_MS) || 30000, // Close idle connections after 30s
+        serverSelectionTimeoutMS: Number(process.env.DB_SERVER_SELECTION_TIMEOUT_MS) || 5000, // Server selection timeout
+        socketTimeoutMS: Number(process.env.DB_SOCKET_TIMEOUT_MS) || 45000, // Socket operation timeout
+        connectTimeoutMS: Number(process.env.DB_CONNECT_TIMEOUT_MS) || 10000, // Initial connection timeout
+        heartbeatFrequencyMS: Number(process.env.DB_HEARTBEAT_FREQUENCY_MS) || 10000, // Heartbeat interval
+        bufferCommands: false, // Disable mongoose buffering for immediate errors
         bufferMaxEntries: 0, // Disable mongoose buffering
-        waitQueueTimeoutMS: 10000, // How long to wait for a connection before timing out
-        retryWrites: true, // Retry write operations if they fail
-        retryReads: true, // Retry read operations if they fail
-        readPreference: 'primary', // Read from primary by default
+        waitQueueTimeoutMS: Number(process.env.DB_WAIT_QUEUE_TIMEOUT_MS) || 10000, // Connection wait timeout
+        retryWrites: true, // Retry write operations on failure
+        retryReads: true, // Retry read operations on failure
+        readPreference: (process.env.DB_READ_PREFERENCE as any) || 'primary', // Configurable read preference
         writeConcern: {
-          w: 'majority', // Write to majority of replica set members
-          j: true // Ensure writes are written to journal
-        }
+          w: Number(process.env.DB_WRITE_CONCERN_W) || 'majority', // Write acknowledgment level
+          j: process.env.DB_WRITE_CONCERN_J !== 'false', // Journal writes (default true)
+          wtimeout: Number(process.env.DB_WRITE_CONCERN_TIMEOUT_MS) || 5000 // Write timeout
+        },
+        // Compression settings for better performance
+        compressors: ['snappy', 'zlib'],
+        zlibCompressionLevel: Number(process.env.DB_ZLIB_COMPRESSION_LEVEL) || 6
       })
 
       this.isConnected = true
+      this.connectionMetrics.totalConnections++
+      this.connectionMetrics.activeConnections = mongoose.connection.readyState === 1 ? 1 : 0
       logger.info('Connected to MongoDB successfully')
 
       // Set up connection event listeners
-      mongoose.connection.on('error', (error) => {
+      mongoose.connection.on('error', (error: Error) => {
         logger.error('MongoDB connection error:', error)
         this.isConnected = false
+        this.connectionMetrics.failedConnections++
+        this.connectionMetrics.connectionErrors.push({
+          timestamp: new Date(),
+          error: error.message
+        })
+        // Keep only last 50 errors
+        if (this.connectionMetrics.connectionErrors.length > 50) {
+          this.connectionMetrics.connectionErrors = this.connectionMetrics.connectionErrors.slice(-50)
+        }
       })
 
       mongoose.connection.on('disconnected', () => {
@@ -96,12 +122,22 @@ export class DatabaseConnection {
       await mongoose.connection.db?.admin().ping()
       const responseTime = Date.now() - startTime
       
+      // Update metrics
+      this.connectionMetrics.lastHealthCheck = new Date()
+      this.connectionMetrics.responseTimeHistory.push(responseTime)
+      if (this.connectionMetrics.responseTimeHistory.length > 100) {
+        this.connectionMetrics.responseTimeHistory = this.connectionMetrics.responseTimeHistory.slice(-100)
+      }
+      this.connectionMetrics.averageResponseTime = 
+        this.connectionMetrics.responseTimeHistory.reduce((a, b) => a + b, 0) / this.connectionMetrics.responseTimeHistory.length
+      
       return {
         status: 'healthy',
         responseTime
       }
     } catch (error) {
       logger.error('Database health check failed:', error)
+      this.connectionMetrics.lastHealthCheck = new Date()
       return {
         status: 'unhealthy'
       }
@@ -127,12 +163,36 @@ export class DatabaseConnection {
         if (serverStatus && serverStatus.connections) {
           poolStats.poolSize = serverStatus.connections.current || 0
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.warn('Could not fetch pool statistics:', error)
       }
     }
 
     return poolStats
+  }
+
+  public getConnectionMetrics() {
+    return {
+      ...this.connectionMetrics,
+      connectionUptime: this.isConnected ? Date.now() - (this.connectionMetrics.lastHealthCheck?.getTime() || Date.now()) : 0,
+      errorRate: this.connectionMetrics.totalConnections > 0 
+        ? (this.connectionMetrics.failedConnections / this.connectionMetrics.totalConnections) * 100 
+        : 0,
+      recentErrors: this.connectionMetrics.connectionErrors.slice(-10)
+    }
+  }
+
+  public resetMetrics() {
+    this.connectionMetrics = {
+      totalConnections: 0,
+      activeConnections: 0,
+      failedConnections: 0,
+      connectionErrors: [],
+      lastHealthCheck: null,
+      averageResponseTime: 0,
+      responseTimeHistory: []
+    }
+    logger.info('Database connection metrics reset')
   }
 }
 

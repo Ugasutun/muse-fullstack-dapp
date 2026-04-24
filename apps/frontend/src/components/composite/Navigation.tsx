@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { NotificationButton } from '@/components/Notifications/NotificationButton'
 import { cn } from '@/utils/cn'
+import { CriticalErrorBoundary } from '@/components/error'
 
 export function Navigation() {
   const { t } = useTranslation()
@@ -22,10 +23,16 @@ export function Navigation() {
   const closeMenu = () => setIsOpen(false)
 
   return (
-    <nav
-      className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-secondary-100"
-      aria-label="Main navigation"
+    <CriticalErrorBoundary 
+      name="Navigation" 
+      showRetry={false}
+      showHome={true}
+      customMessage="Navigation system encountered an error. Please use the home button to continue."
     >
+      <nav
+        className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-secondary-100"
+        aria-label="Main navigation"
+      >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo */}
@@ -127,6 +134,7 @@ export function Navigation() {
           </div>
         </div>
       )}
-    </nav>
+      </nav>
+    </CriticalErrorBoundary>
   )
 }
