@@ -1,4 +1,5 @@
 import React from 'react'
+import { Grid } from '@/components/layout/Grid'
 
 export interface LoadingProps {
   variant?: 'spinner' | 'skeleton' | 'pulse' | 'dots' | 'bars'
@@ -224,9 +225,9 @@ export function LoadingCard({
 }: LoadingCardProps) {
   if (variant === 'artwork') {
     return (
-      <div className={className}>
+      <Grid responsive className={className}>
         {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className="card-mobile overflow-hidden">
+          <div key={i} className="card overflow-hidden">
             <div className="aspect-square bg-secondary-200 animate-pulse" />
             <div className="p-4 space-y-3">
               <div className="h-4 bg-secondary-200 rounded animate-pulse" />
@@ -238,7 +239,7 @@ export function LoadingCard({
             </div>
           </div>
         ))}
-      </div>
+      </Grid>
     )
   }
 
@@ -269,7 +270,7 @@ export function LoadingCard({
   }
 
   return (
-    <div className={className}>
+    <Grid responsive className={className}>
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="card p-4 space-y-3">
           <div className="h-4 bg-secondary-200 rounded animate-pulse" />
@@ -277,6 +278,7 @@ export function LoadingCard({
           <div className="h-20 bg-secondary-100 rounded animate-pulse" />
         </div>
       ))}
-    </div>
+    </Grid>
   )
 }
+

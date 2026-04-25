@@ -2,6 +2,9 @@ export interface FrontendErrorLog {
   message: string;
   stack?: string;
   componentStack?: string;
+  componentName?: string;
+  level?: string;
+  retryCount?: number;
   source?: string;
   lineno?: number;
   colno?: number;

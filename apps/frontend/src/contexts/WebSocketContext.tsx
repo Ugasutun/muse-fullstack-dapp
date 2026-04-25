@@ -33,7 +33,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
 
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io(process.env.VITE_WS_URL || 'http://localhost:3001', {
+    const newSocket = io(import.meta.env.VITE_WS_URL || 'http://localhost:3001', {
       transports: ['websocket', 'polling'],
       autoConnect: true,
       reconnection: true,

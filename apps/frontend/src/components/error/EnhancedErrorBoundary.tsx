@@ -50,8 +50,8 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
     // Enhanced error logging with component context
     logError({
       message: appError.message,
-      stack: appError.details || error.stack,
-      componentStack: errorInfo.componentStack,
+      stack: (typeof appError.details === 'string' ? appError.details : JSON.stringify(appError.details)) || error.stack,
+      componentStack: errorInfo.componentStack ?? undefined,
       componentName: this.props.name || 'Unknown',
       level: this.props.level || 'component',
       retryCount: this.state.retryCount,
@@ -144,7 +144,7 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
           </h1>
 
           {/* Component Name (for debugging) */}
-          {name && process.env.NODE_ENV === 'development' && (
+          {name && import.meta.env.DEV && (
             <p className="text-xs text-gray-500 mb-2 font-mono">
               Component: {name}
             </p>
@@ -222,7 +222,7 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
           </div>
 
           {/* Error Details (Development Only) */}
-          {process.env.NODE_ENV === 'development' && error && (
+          {import.meta.env.DEV && error && (
             <details className="mt-6 text-left">
               <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
                 Error Details (Development)
