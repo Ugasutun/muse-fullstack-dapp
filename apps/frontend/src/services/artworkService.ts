@@ -40,6 +40,13 @@ export interface ArtworkFilters {
   creator?: string
   isListed?: boolean
   sort?: string
+  search?: string
+  minPrice?: string
+  maxPrice?: string
+  artist?: string
+  style?: string
+  dateFrom?: string
+  dateTo?: string
 }
 
 export interface CreateArtworkForm {
@@ -68,6 +75,13 @@ export const artworkService = {
       if (filters?.creator) params.append('creator', filters.creator)
       if (filters?.isListed !== undefined) params.append('isListed', filters.isListed.toString())
       if (filters?.sort) params.append('sort', filters.sort)
+      if (filters?.search) params.append('search', filters.search)
+      if (filters?.minPrice) params.append('minPrice', filters.minPrice)
+      if (filters?.maxPrice) params.append('maxPrice', filters.maxPrice)
+      if (filters?.artist) params.append('artist', filters.artist)
+      if (filters?.style) params.append('style', filters.style)
+      if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom)
+      if (filters?.dateTo) params.append('dateTo', filters.dateTo)
 
       const response = await fetch(`${API_BASE_URL}/api/artworks?${params}`, {
         headers: { 'Content-Type': 'application/json' },

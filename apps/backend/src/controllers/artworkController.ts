@@ -21,12 +21,66 @@ export const getArtworks = async (req: Request, res: Response, next: NextFunctio
       creator,
       isListed,
       sort = '-createdAt',
+      search,
+      minPrice,
+      maxPrice,
+      artist,
+      style,
+      dateFrom,
+      dateTo,
     } = req.query as Record<string, string>
 
     const filter: Record<string, unknown> = {}
+    
+    // Basic filters
     if (category) filter.category = category.toLowerCase()
     if (creator) filter.creator = creator
     if (isListed !== undefined) filter.isListed = isListed === 'true'
+    
+    // Advanced search filters
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { prompt: { $regex: search, $options: 'i' } },
+        { category: { $regex: search, $options: 'i' } },
+      ]
+    }
+    
+    // Price range filter
+    if (minPrice || maxPrice) {
+      filter.price = {}
+      if (minPrice) {
+        const min = parseFloat(minPrice)
+        if (!isNaN(min)) filter.price.$gte = min.toString()
+      }
+      if (maxPrice) {
+        const max = parseFloat(maxPrice)
+        if (!isNaN(max)) filter.price.$lte = max.toString()
+      }
+    }
+    
+    // Artist filter (alias for creator)
+    if (artist) filter.creator = artist
+    
+    // Style filter (alias for category)
+    if (style) filter.category = style.toLowerCase()
+    
+    // Creation date range filter
+    if (dateFrom || dateTo) {
+      filter.createdAt = {}
+      if (dateFrom) {
+        const fromDate = new Date(dateFrom)
+        if (!isNaN(fromDate.getTime())) filter.createdAt.$gte = fromDate
+      }
+      if (dateTo) {
+        const toDate = new Date(dateTo)
+        if (!isNaN(toDate.getTime())) {
+          toDate.setHours(23, 59, 59, 999) // End of day
+          filter.createdAt.$lte = toDate
+        }
+      }
+    }
 
     const pageNum = Math.max(1, parseInt(String(page), 10))
     const limitNum = Math.min(100, Math.max(1, parseInt(String(limit), 10)))
@@ -37,7 +91,7 @@ export const getArtworks = async (req: Request, res: Response, next: NextFunctio
       Artwork.countDocuments(filter),
     ])
 
-    log.info('Artworks fetched', { count: artworks.length, total })
+    log.info('Artworks fetched', { count: artworks.length, total, filters: Object.keys(filter) })
     res.json({
       success: true,
       data: { artworks, total, page: pageNum, limit: limitNum, pages: Math.ceil(total / limitNum) },

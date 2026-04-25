@@ -4,12 +4,14 @@ import { ArtworkGrid } from '@/components/ArtworkGrid'
 import { ErrorDisplay } from '@/components/ErrorDisplay'
 import { FilterPanel } from '@/components/FilterPanel'
 import { Button } from '@/components/ui/Button'
-import { artworkService, type ApiArtwork, type Artwork } from '@/services/artworkService'
+import { AdvancedArtworkSearch } from '@/components/artwork'
+import { artworkService, type ApiArtwork, type Artwork, type ArtworkFilters } from '@/services/artworkService'
 import { useErrorContext } from '@/contexts/ErrorContext'
 import { useWebSocket, useBidUpdates, useSaleUpdates, useWebSocketAuth } from '@/contexts/WebSocketContext'
 import { ErrorHandler } from '@/utils/errorHandler'
 import { MOCK_ARTWORKS } from '@/data/mock-api'
 import type { ArtworksFilters } from '@/types'
+import type { SearchFilters } from '@/components/artwork/AdvancedSearchFilters'
 
 const PAGE_SIZE = 12
 
@@ -39,6 +41,18 @@ export function ExplorePage() {
     const { saleUpdates } = useSaleUpdates()
     const { authenticate } = useWebSocketAuth()
     const [filters, setFilters] = useState<ArtworksFilters>({})
+    const [searchFilters, setSearchFilters] = useState<SearchFilters>({
+        search: "",
+        minPrice: "",
+        maxPrice: "",
+        artist: "",
+        style: "",
+        dateFrom: "",
+        dateTo: "",
+        category: "",
+        isListed: undefined,
+        sortBy: "-createdAt",
+    })
     const [page, setPage] = useState(1)
     const [useFallbackData, setUseFallbackData] = useState(false)
     const [liveActivity, setLiveActivity] = useState<Array<{type: string, message: string, timestamp: string}>>([])
@@ -80,16 +94,24 @@ export function ExplorePage() {
     }, [saleUpdates])
 
     const { data, isLoading, isFetching, error, refetch } = useQuery({
-        queryKey: ['explore-artworks', page, filters],
+        queryKey: ['explore-artworks', page, searchFilters],
         queryFn: async () => {
-            return artworkService.getArtworks({
+            const apiFilters: ArtworkFilters = {
                 page,
                 limit: PAGE_SIZE,
-                category: filters.category,
+                search: searchFilters.search || undefined,
+                minPrice: searchFilters.minPrice || undefined,
+                maxPrice: searchFilters.maxPrice || undefined,
+                artist: searchFilters.artist || undefined,
+                style: searchFilters.style || undefined,
+                dateFrom: searchFilters.dateFrom || undefined,
+                dateTo: searchFilters.dateTo || undefined,
+                category: searchFilters.category || filters.category,
                 creator: filters.creator,
-                isListed: filters.isListed,
-                sort: filters.sortBy,
-            })
+                isListed: searchFilters.isListed !== undefined ? searchFilters.isListed : filters.isListed,
+                sort: searchFilters.sortBy,
+            }
+            return artworkService.getArtworks(apiFilters)
         },
         enabled: !useFallbackData,
         retry: 1,
@@ -109,7 +131,20 @@ export function ExplorePage() {
         return apiArtworks.map(mapApiArtworkToUi)
     }, [data?.artworks, useFallbackData])
 
-    const hasFilters = Boolean(filters.category || filters.priceRange || filters.sortBy)
+    const hasFilters = Boolean(
+        filters.category || 
+        filters.priceRange || 
+        filters.sortBy ||
+        searchFilters.search ||
+        searchFilters.minPrice ||
+        searchFilters.maxPrice ||
+        searchFilters.artist ||
+        searchFilters.style ||
+        searchFilters.dateFrom ||
+        searchFilters.dateTo ||
+        searchFilters.isListed !== undefined ||
+        searchFilters.sortBy !== "-createdAt"
+    )
     const hasNextPage = !useFallbackData && !!data && page < data.pages
 
     const handleRetry = async () => {
@@ -131,7 +166,25 @@ export function ExplorePage() {
 
     const handleClearFilters = () => {
         setFilters({})
+        setSearchFilters({
+            search: "",
+            minPrice: "",
+            maxPrice: "",
+            artist: "",
+            style: "",
+            dateFrom: "",
+            dateTo: "",
+            category: "",
+            isListed: undefined,
+            sortBy: "-createdAt",
+        })
         setPage(1)
+    }
+
+    const handleAdvancedSearch = (newSearchFilters: SearchFilters) => {
+        setSearchFilters(newSearchFilters)
+        setPage(1)
+        setUseFallbackData(false)
     }
 
     return (
@@ -195,10 +248,10 @@ export function ExplorePage() {
                 )}
 
                 <div className="mb-6">
-                    <FilterPanel
-                        filters={filters}
-                        onChange={handleFilterChange}
-                        onClear={handleClearFilters}
+                    <AdvancedArtworkSearch
+                        onSearch={handleAdvancedSearch}
+                        loading={isLoading && !useFallbackData}
+                        categories={['abstract', 'landscape', 'portrait', 'digital', 'fantasy', 'sci-fi', 'nature', 'urban']}
                     />
                 </div>
 

@@ -121,12 +121,15 @@ ArtworkSchema.virtual('artistInfo', {
   justOne: true
 })
 
-ArtworkSchema.index({ title: 'text', description: 'text', prompt: 'text' })
+ArtworkSchema.index({ title: 'text', description: 'text', prompt: 'text', category: 'text' })
 ArtworkSchema.index({ creator: 1, isListed: 1 })
 ArtworkSchema.index({ category: 1, isListed: 1, createdAt: -1 })
 ArtworkSchema.index({ creator: 1, createdAt: -1 })
 ArtworkSchema.index({ price: 1 })
 ArtworkSchema.index({ createdAt: -1 })
+ArtworkSchema.index({ price: 1, createdAt: -1 })
+ArtworkSchema.index({ category: 1, price: 1 })
+ArtworkSchema.index({ creator: 1, category: 1, createdAt: -1 })
 
 // Virtual relationships
 ArtworkSchema.virtual('transactions', {
