@@ -32,6 +32,7 @@ import cacheService from '@/services/cacheService'
 import { jobQueueService } from '@/services/jobQueueService'
 import { createLogger } from '@/utils/logger'
 import { websocketService } from '@/services/websocketService'
+import { ensureIndexes } from '@/scripts/ensureIndexes'
 import logsRoute from "./routes/logs";
 
 dotenv.config()
@@ -151,6 +152,10 @@ export const app = createApp()
 export async function startServer() {
   await database.connect()
   logger.info('Connected to MongoDB with connection pooling')
+
+  // Ensure database indexes are created
+  await ensureIndexes()
+  logger.info('🔍 Database indexes verified and created')
 
   if (process.env.NODE_ENV !== 'test') {
     try {
